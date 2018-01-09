@@ -15,21 +15,21 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\inc\public.h">
+    <ClInclude Include=".\inc\public.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="stdafx.h">
+    <ClInclude Include=".\inc\stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\inc\vjoyinterface.h">
+    <ClInclude Include=".\inc\vjoyinterface.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\inc\hidapi.h">
+    <ClInclude Include=".\inc\hidapi.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
+    <ClCompile Include=".\src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
