@@ -1,9 +1,11 @@
 #include <iostream>
 #include <vector>
+#include <thread>
 
 #include "joycon.h"
+#include "buffer.h"
 
-Joycon::Joycon(JOY_TYPE type, wchar_t* serial_number) : alive(true) {
+Joycon::Joycon(JOY_TYPE type, wchar_t* serial_number) {
 	// Open the device using the VID, PID,
 	// and optionally the Serial number.
 	handle = hid_open(JOYCON_VENDOR, type, serial_number);
@@ -34,42 +36,14 @@ Joycon::Joycon(JOY_TYPE type, wchar_t* serial_number) : alive(true) {
 
 	unsigned int timing_byte = 0;
 
-	hid_set_nonblocking(handle, 0);
-
 	std::cout << "Enabling vibration..." << std::endl;
-	uint8_t vib_buf[12] = { 0x01, (++timing_byte) & 0xF, 0x00, 0x01, 0x40, 0x40, 0x00, 0x01, 0x40, 0x40, 0x48, 0x01 };
-	memcpy(buf.data(), vib_buf, 12);
-	res = hid_write(handle, buf.data(), 65);
-	std::cout << "sent:     ";
-	printBuf(buf, 32);
+	this->send_command(0x01, 0x48, { 0x01 });
 
-	res = hid_read(handle, buf.data(), 65);
-	std::cout << "received: ";
-	printBuf(buf, 32);
-
-	std::fill(buf.begin(), buf.end(), 0); //cleanup
 	std::cout << "Enabling IMU..." << std::endl;
-	uint8_t gyro_buf[12] = { 0x01, (++timing_byte) & 0xF, 0x00, 0x01, 0x40, 0x40, 0x00, 0x01, 0x40, 0x40, 0x40, 0x01 };
-	memcpy(buf.data(), gyro_buf, 12);
-	res = hid_write(handle, buf.data(), 65);
-	std::cout << "sent:     ";
+	this->send_command(0x01, 0x40, { 0x01 });
 
-	printBuf(buf, 32);
-	res = hid_read(handle, buf.data(), 65);
-	std::cout << "received: ";
-	printBuf(buf, 32);
-
-	std::fill(buf.begin(), buf.end(), 0); //cleanup
 	std::cout << "Increasing data rate for Bluetooth..." << std::endl;
-	uint8_t rate_buf[12] = { 0x01, (++timing_byte) & 0xF, 0x00, 0x01, 0x40, 0x40, 0x00, 0x01, 0x40, 0x40, 0x03, 0x30 };
-	memcpy(buf.data(), rate_buf, 12);
-	res = hid_write(handle, buf.data(), 65);
-	std::cout << "sent:     ";
-	printBuf(buf, 32);
-
-	res = hid_read(handle, buf.data(), 65);
-	std::cout << "received: ";
-	printBuf(buf, 32);
+	this->send_command(0x01, 0x03, { 0x30 });
 
 	std::cout << " >> Press Enter to continue << ";
 	std::cin.get();
@@ -82,37 +56,53 @@ Joycon::~Joycon() {
 		callback_thread.join();
 }
 
+void Joycon::send_command(unsigned char cmd, unsigned char subcmd, std::vector<unsigned char> data) {
+
+	hid_set_nonblocking(handle, 0);
+
+	InputBuffer buf_in;
+	buf_in.set_cmd(cmd);
+	buf_in.set_subcmd(subcmd);
+	buf_in.set_data(data);
+	buf_in.set_GP(package_number & 0x0F);
+
+	std::cout << "sending:  ";
+	buf_in.printBuf(32);
+
+	if (hid_write(handle, buf_in.data(), buf_in.size()) < 0) {
+		std::cout << "WARNING: write failed!" << std::endl;
+		return;
+	}
+
+	OutputBuffer buf_out;
+	if (hid_read(handle, buf_out.data(), buf_out.size()) < 0) {
+		std::cout << "WARNING: read failed!" << std::endl;
+	}
+
+	std::cout << "received: ";
+	buf_out.printBuf(32);
+
+	++package_number;
+}
+
+
 void Joycon::callback() {
-	std::vector<unsigned char> buf(65, 0);
+	OutputBuffer buf_out;
 	while (alive) {
-		std::fill(buf.begin(), buf.end(), 0); //cleanup
+		buf_out.clean();
 
-											  // Read requested state
-		hid_read(handle, buf.data(), 65);
+		// Read requested state
+		hid_read(handle, buf_out.data(), buf_out.size());
 
-		// Print out the returned buffer.
-
-		if (buf[0] == 0x0) {
+		if (buf_out[0] == 0x00) {
 			continue;
 		}
 
-		printBuf(buf, 32);
+		buf_out.printBuf(32);
 	}
 }
 
 void Joycon::capture() {
 	hid_set_nonblocking(handle, 1);
 	callback_thread = std::thread(&Joycon::callback, this);
-}
-
-template<typename T>
-void Joycon::printBuf(const std::vector<T>& buf, const unsigned int size) {
-	for (unsigned int i = 0; i < size; i++) {
-		const unsigned int &hx = buf[i];
-		if (hx <= 0xf)
-			std::cout << std::hex << 0 << hx << " "; //leading 0
-		else
-			std::cout << std::hex << hx << " ";
-	}
-	std::cout << std::endl;
 }

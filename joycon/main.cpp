@@ -58,6 +58,7 @@ int main() {
 
 	if (joycons.size() == 0) {
 		std::cout << "No joy-con device detected!" << std::endl;
+		return 0;
 	}
 	else {
 		std::cout << "Starting capture for " << joycons.size() << " devices!" << std::endl;

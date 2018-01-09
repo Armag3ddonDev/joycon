@@ -1,7 +1,5 @@
 #pragma once
 
-#include <thread>
-
 #include "hidapi.h"
 
 #define MAX_STR 255
@@ -24,14 +22,14 @@ public:
 
 	~Joycon();
 
+	void send_command(unsigned char cmd, unsigned char subcmd, std::vector<unsigned char> data);
+
 	void capture();
 	void callback();
-
-	template<typename T>
-	void printBuf(const std::vector<T>& buf, const unsigned int size);
 
 private:
 	hid_device * handle;
 	std::thread callback_thread;
 	bool alive = true;
+	std::size_t package_number = 0;
 };

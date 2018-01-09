@@ -21,12 +21,18 @@
     <ClCompile Include="joycon.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="buffer.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="joycon.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="hidapi.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="buffer.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
