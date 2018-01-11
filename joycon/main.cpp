@@ -1,19 +1,25 @@
 #include <iostream>
-#include <cmath>
+#include <chrono>
 #include <thread>
 #include <vector>
+#include <signal.h>
 
-#include "hidapi/hidapi.h"
+#ifdef _WIN32
+#include "hidapi.h"
+#elif __linux__
+#include <hidapi/hidapi.h>
+#endif
+
 #include "joycon.h"
 
-#define MAX_STR 255
-
-#define JOYCON_VENDOR 0x057e
+static sig_atomic_t volatile shutdown_flag = 0;
+static void SigCallback(int sig)
+{
+	shutdown_flag = 1;
+}
 
 int main() {
 	std::ios_base::sync_with_stdio(false);
-
-	std::vector<Joycon> joycons;
 
 	// Initialize the hidapi library
 	if (hid_init()) {
@@ -21,55 +27,17 @@ int main() {
 		return -1;
 	}
 
-	std::cout << "Searching for devices..." << std::endl;
+	signal(SIGINT , SigCallback);
+	signal(SIGTERM, SigCallback);
 
-	hid_device_info* devs = hid_enumerate(JOYCON_VENDOR, 0x0);
-	if (devs == nullptr) {
-		std::cout << "No bluetooth device detected!" << std::endl;
+	JoyconVec joycons;
+	if (joycons.addDevices()   == -1) { hid_exit();  return 0; }
+	if (joycons.startDevices() == -1) { hid_exit();  return 0; };
+
+	while (!shutdown_flag) {
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 
-	std::cout << "-----------------------------" << std::endl;
-	for (hid_device_info* current = devs; current != nullptr; current = current->next) {
-
-		if (current->vendor_id != JOYCON_VENDOR) {
-			continue;
-		}
-
-		switch (current->product_id) {
-		case JOYCON_L_BT:
-			break;
-		case JOYCON_R_BT:
-			break;
-		case PRO_CONTROLLER:
-			std::cout << "Pro-controller is not supported" << std::endl;
-			continue;
-		case JOYCON_CHARGING_GRIP:
-			std::cout << "Joy-con charging grip is not supported" << std::endl;
-			continue;
-		default:
-			continue;
-		}
-
-		joycons.emplace_back(static_cast<JOY_TYPE>(current->product_id), current->serial_number);
-
-		std::cout << "-----------------------------" << std::endl;
-	}
-
-	hid_free_enumeration(devs);
-
-	if (joycons.size() == 0) {
-		std::cout << "No joy-con device detected!" << std::endl;
-		return 0;
-	}
-	else {
-		std::cout << "Starting capture for " << joycons.size() << " devices!" << std::endl;
-		for (Joycon& jc : joycons) {
-			jc.capture();
-		}
-	}
-
-	std::cin.get();
-
-	// Finalize the hidapi library
 	hid_exit();
+	return 0;
 }
