@@ -38,6 +38,10 @@ unsigned char* OutputBuffer::data() {
 	return buf.data();
 }
 
+unsigned char& OutputBuffer::cmd() {
+	return buf[0];
+}
+
 //InputBuffer
 
 void InputBuffer::set_cmd(unsigned char in) { // command byte

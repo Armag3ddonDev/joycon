@@ -18,6 +18,7 @@ public:
 	OutputBuffer() : Buffer(65) {}
 
 	void clean();
+	unsigned char& cmd();
 	unsigned char& operator[](std::size_t idx);
 	unsigned char* data();
 };

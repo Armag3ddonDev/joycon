@@ -115,6 +115,8 @@ void Joycon::callback() {
 			continue;
 		}
 
+		processReply(buf_out);
+
 		buf_out.printBuf(65);
 	}
 }
@@ -122,4 +124,22 @@ void Joycon::callback() {
 void Joycon::capture() {
 	hid_set_nonblocking(handle, 1);
 	callback_thread = std::thread(&Joycon::callback, this);
+}
+
+void Joycon::processReply(OutputBuffer& buf_out) {
+	auto cmd = buf_out.cmd();
+	switch (cmd) {
+	case 0x30: //
+		//accel
+		std::cout << std::dec << ((buf_out[16] << 8) +  buf_out[15]) * 0.000244f << std::endl;
+		std::cout << std::dec << ((buf_out[18] << 8) +  buf_out[17]) * 0.000244f << std::endl;
+		std::cout << std::dec << ((buf_out[20] << 8) +  buf_out[19]) * 0.000244f << std::endl;
+		//gyro
+		std::cout << std::dec << ((buf_out[22] << 8) +  buf_out[21]) * 0.070f << std::endl;
+		std::cout << std::dec << ((buf_out[24] << 8) +  buf_out[23]) * 0.070f << std::endl;
+		std::cout << std::dec << ((buf_out[26] << 8) +  buf_out[25]) * 0.070f << std::endl;
+		break;
+	default:
+		break;
+	}
 }

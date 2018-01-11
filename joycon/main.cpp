@@ -11,6 +11,7 @@
 #define JOYCON_VENDOR 0x057e
 
 int main() {
+	std::ios_base::sync_with_stdio(false);
 
 	std::vector<Joycon> joycons;
 

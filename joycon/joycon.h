@@ -1,5 +1,6 @@
 #pragma once
 
+#include "buffer.h"
 #include "hidapi/hidapi.h"
 
 #define MAX_STR 255
@@ -22,10 +23,23 @@ public:
 
 	~Joycon();
 
+	struct Gyro {
+		double x = 0;
+		double y = 0;
+		double z = 0;
+	} gyro;
+
+	struct Accel {
+		double x = 0;
+		double y = 0;
+		double z = 0;
+	} accel;
+
 	void send_command(unsigned char cmd, unsigned char subcmd, std::vector<unsigned char> data);
 
 	void capture();
 	void callback();
+	void processReply(OutputBuffer& buf_out);
 
 private:
 	hid_device * handle;
