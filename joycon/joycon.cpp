@@ -18,16 +18,21 @@ Joycon::Joycon(JOY_PID PID, wchar_t* serial_number) : package_number(0) {
 		THROW(error);
 	}
 
-	this->printDeviceInfo();
+	try {
+		this->printDeviceInfo();
 
-	std::cout << "Enabling vibration..." << std::endl;
-	this->send_command(0x01, 0x48, { 0x01 });
+		std::cout << "Enabling vibration..." << std::endl;
+		this->send_command(0x01, 0x48, { 0x01 });
 
-	std::cout << "Enabling IMU..." << std::endl;
-	this->send_command(0x01, 0x40, { 0x01 });
+		std::cout << "Enabling IMU..." << std::endl;
+		this->send_command(0x01, 0x40, { 0x01 });
 
-	std::cout << "Increasing data rate for Bluetooth..." << std::endl;
-	this->send_command(0x01, 0x03, { 0x30 });
+		std::cout << "Increasing data rate for Bluetooth..." << std::endl;
+		this->send_command(0x01, 0x03, { 0x30 });
+	} catch (std::exception& e) {
+		hid_close(handle);
+		THROW("Constructor failed to initialize.");
+	}
 }
 
 Joycon::~Joycon() {
