@@ -10,6 +10,14 @@ Joycon::Joycon(JOY_TYPE type, wchar_t* serial_number) {
 	// and optionally the Serial number.
 	handle = hid_open(JOYCON_VENDOR, type, serial_number);
 
+	if(handle == nullptr) {
+		std::cerr << std::hex << type << std::endl;
+		std::wcerr << serial_number << std::endl;
+		std::cerr << "Handle couldn't be set!" << std::endl;
+		std::cerr << "You need to run this program as sudo maybe?" << std::endl; //TODO FIX THIS!!!
+		throw;
+	}
+
 	std::vector<unsigned char> buf(65, 0);
 
 	wchar_t wstr[MAX_STR];
@@ -17,19 +25,19 @@ Joycon::Joycon(JOY_TYPE type, wchar_t* serial_number) {
 
 	// Read the Manufacturer String
 	res = hid_get_manufacturer_string(handle, wstr, MAX_STR);
-	wprintf(L"Manufacturer String: %s\n", wstr);
+	std::wcout << L"Manufacturer String: " << wstr << std::endl;
 
 	// Read the Product String
 	res = hid_get_product_string(handle, wstr, MAX_STR);
-	wprintf(L"Product String: %s\n", wstr);
+	std::wcout << L"Product String: " << wstr << std::endl;
 
 	// Read the Serial Number String
 	res = hid_get_serial_number_string(handle, wstr, MAX_STR);
-	wprintf(L"Serial Number String: (%d) %s\n", wstr[0], wstr);
+	std::wcout << L"Serial Number String: (" << wstr[0] << ") " << wstr << std::endl;
 
 	// Read Indexed String 1
 	res = hid_get_indexed_string(handle, 1, wstr, MAX_STR);
-	wprintf(L"Indexed String 1: %s\n", wstr);
+	std::wcout << L"Indexed String 1: " << wstr << std::endl;
 
 	std::cout << " >> Press Enter to continue << ";
 	std::cin.get();
@@ -58,7 +66,13 @@ Joycon::~Joycon() {
 
 void Joycon::send_command(unsigned char cmd, unsigned char subcmd, std::vector<unsigned char> data) {
 
-	hid_set_nonblocking(handle, 0);
+	int res = hid_set_nonblocking(handle, 0);
+	if(res == -1) {
+		std::cerr << "Could not set nonblocking mode!" << std::endl;
+		throw;
+	} else {
+		std::cout << "Blocking mode set" << std::endl;
+	}
 
 	InputBuffer buf_in;
 	buf_in.set_cmd(cmd);
@@ -67,11 +81,14 @@ void Joycon::send_command(unsigned char cmd, unsigned char subcmd, std::vector<u
 	buf_in.set_GP(package_number & 0x0F);
 
 	std::cout << "sending:  ";
-	buf_in.printBuf(32);
+	buf_in.printBuf(65);
 
-	if (hid_write(handle, buf_in.data(), buf_in.size()) < 0) {
-		std::cout << "WARNING: write failed!" << std::endl;
-		return;
+	res = hid_write(handle, buf_in.data(), buf_in.size());
+	if(res == -1) {
+		std::cerr << "Write failed!" << std::endl;
+		throw;
+	} else {
+		std::cout << res << std::endl;
 	}
 
 	OutputBuffer buf_out;
@@ -80,7 +97,7 @@ void Joycon::send_command(unsigned char cmd, unsigned char subcmd, std::vector<u
 	}
 
 	std::cout << "received: ";
-	buf_out.printBuf(32);
+	buf_out.printBuf(65);
 
 	++package_number;
 }
@@ -98,7 +115,7 @@ void Joycon::callback() {
 			continue;
 		}
 
-		buf_out.printBuf(32);
+		buf_out.printBuf(65);
 	}
 }
 

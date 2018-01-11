@@ -3,7 +3,7 @@
 #include <thread>
 #include <vector>
 
-#include "hidapi.h"
+#include "hidapi/hidapi.h"
 #include "joycon.h"
 
 #define MAX_STR 255
@@ -23,12 +23,12 @@ int main() {
 	std::cout << "Searching for devices..." << std::endl;
 
 	hid_device_info* devs = hid_enumerate(JOYCON_VENDOR, 0x0);
-	if (devs == NULL) {
+	if (devs == nullptr) {
 		std::cout << "No bluetooth device detected!" << std::endl;
 	}
 
 	std::cout << "-----------------------------" << std::endl;
-	for (hid_device_info* current = devs; current != NULL; current = current->next) {
+	for (hid_device_info* current = devs; current != nullptr; current = current->next) {
 
 		if (current->vendor_id != JOYCON_VENDOR) {
 			continue;

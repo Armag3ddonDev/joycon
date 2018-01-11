@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hidapi.h"
+#include "hidapi/hidapi.h"
 
 #define MAX_STR 255
 

@@ -20,8 +20,8 @@ void Buffer::printBuf(unsigned int size) const {
 	std::cout << std::endl;
 }
 
-const std::size_t& Buffer::size() { 
-	return buf.size(); 
+const std::size_t Buffer::size() {
+	return buf.size();
 }
 
 //OutputBuffer
@@ -31,25 +31,25 @@ void OutputBuffer::clean() {
 }
 
 unsigned char& OutputBuffer::operator[](std::size_t idx) { 
-	return buf[idx]; 
+	return buf[idx];
 }
 
 unsigned char* OutputBuffer::data() { 
-	return buf.data(); 
+	return buf.data();
 }
 
 //InputBuffer
 
 void InputBuffer::set_cmd(unsigned char in) { // command byte
-	buf[0] = in; 
+	buf[0] = in;
 }
 
 void InputBuffer::set_GP(unsigned char in) { // global packet number (increments by 1 for each package sent;  It loops in 0x0 - 0xF range)
-	buf[1] = in; 
+	buf[1] = in;
 }
 
 void InputBuffer::set_subcmd(unsigned char in) { // subcommand byte
-	buf[10] = in; 
+	buf[10] = in;
 }
 
 // left rumble data

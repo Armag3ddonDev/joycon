@@ -7,7 +7,7 @@ public:
 	Buffer(std::size_t size) : buf(size, 0) {}
 
 	void printBuf(unsigned int size = 0) const;
-	const std::size_t& size();
+	const std::size_t size();
 
 protected:
 	std::vector<unsigned char> buf;
@@ -30,7 +30,7 @@ public:
 	}
 
 	void set_cmd(unsigned char in);		// command byte
-	void set_GP(unsigned char in);		// global packet number (increments by 1 for each package sent;  It loops in 0x0 - 0xF range)	
+	void set_GP(unsigned char in);		// global packet number (increments by 1 for each package sent;  It loops in 0x0 - 0xF range)
 	void set_subcmd(unsigned char in);	// subcommand byte
 
 	// left rumble data
