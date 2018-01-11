@@ -31,7 +31,7 @@ Joycon::Joycon(JOY_PID PID, wchar_t* serial_number) : package_number(0) {
 		this->send_command(0x01, 0x03, { 0x30 });
 	} catch (std::exception& e) {
 		hid_close(handle);
-		THROW("Constructor failed to initialize.");
+		THROW("Constructor failed to initialize: " + e.what());
 	}
 }
 
