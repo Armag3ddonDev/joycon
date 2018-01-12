@@ -13,8 +13,7 @@
 #include "joycon.h"
 
 static sig_atomic_t volatile shutdown_flag = 0;
-static void SigCallback(int sig)
-{
+static void SigCallback(int sig) {
 	shutdown_flag = 1;
 }
 

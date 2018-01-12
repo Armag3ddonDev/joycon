@@ -71,72 +71,72 @@ void Joycon::send_command(unsigned char cmd, unsigned char subcmd, std::vector<u
 
 	CHECK(hid_set_nonblocking(handle, 0));
 
-	InputBuffer buf_in;
-	buf_in.set_cmd(cmd);
-	buf_in.set_subcmd(subcmd);
-	buf_in.set_data(data);
-	buf_in.set_GP(package_number & 0x0F);
+	OutputBuffer buf_out;
+	buf_out.set_cmd(cmd);
+	buf_out.set_subcmd(subcmd);
+	buf_out.set_data(data);
+	buf_out.set_GP(package_number & 0x0F);
 
 	std::cout << "sending:  ";
-	buf_in.printBuf(65);
+	buf_out.printBuf();
 
-	CHECK(hid_write(handle, buf_in.data(), buf_in.size()));
+	CHECK(hid_write(handle, buf_out.data(), buf_out.size()));
 
-	OutputBuffer buf_out;
-	CHECK(hid_read(handle, buf_out.data(), buf_out.size()));
+	InputBuffer buf_in;
+	CHECK(hid_read(handle, buf_in.data(), buf_in.size()));
 
 	std::cout << "received: ";
-	buf_out.printBuf(65);
+	buf_in.printBuf();
 
 	CHECK(hid_set_nonblocking(handle, 1));
 
 	++package_number;
 }
 
-
 void Joycon::callback() {
-	OutputBuffer buf_out;
+
+	InputBuffer buf_in;
 	while (alive) {
-		buf_out.clean();
+		buf_in.clean();
 
 		// Read requested state
-		CHECK(hid_read(handle, buf_out.data(), buf_out.size()));
+		CHECK(hid_read(handle, buf_in.data(), buf_in.size()));
 
-		if (buf_out[0] == 0x00) {
+		if (buf_in[0] == 0x00) {
 			continue;
 		}
 
-		processReply(buf_out);
+		processReply(buf_in);
 
-		buf_out.printBuf(65);
+		buf_in.printBuf();
 	}
 }
 
 void Joycon::capture() {
+
 	CHECK(hid_set_nonblocking(handle, 1));
 	callback_thread = std::thread(&Joycon::callback, this);
 }
 
-void Joycon::processReply(OutputBuffer& buf_out) {
-	auto cmd = buf_out.cmd();
+void Joycon::processReply(InputBuffer& buf_in) {
+	auto cmd = buf_in.cmd();
 	switch (cmd) {
 	case 0x30: //
 		//accel
-		std::cout << std::dec << ((buf_out[16] << 8) +  buf_out[15]) * 0.000244f << std::endl;
-		std::cout << std::dec << ((buf_out[18] << 8) +  buf_out[17]) * 0.000244f << std::endl;
-		std::cout << std::dec << ((buf_out[20] << 8) +  buf_out[19]) * 0.000244f << std::endl;
+		std::cout << std::dec << ((buf_in[16] << 8) + buf_in[15]) * 0.000244f << std::endl;
+		std::cout << std::dec << ((buf_in[18] << 8) + buf_in[17]) * 0.000244f << std::endl;
+		std::cout << std::dec << ((buf_in[20] << 8) + buf_in[19]) * 0.000244f << std::endl;
 		//gyro
-		std::cout << std::dec << ((buf_out[22] << 8) +  buf_out[21]) * 0.070f << std::endl;
-		std::cout << std::dec << ((buf_out[24] << 8) +  buf_out[23]) * 0.070f << std::endl;
-		std::cout << std::dec << ((buf_out[26] << 8) +  buf_out[25]) * 0.070f << std::endl;
+		std::cout << std::dec << ((buf_in[22] << 8) + buf_in[21]) * 0.070f << std::endl;
+		std::cout << std::dec << ((buf_in[24] << 8) + buf_in[23]) * 0.070f << std::endl;
+		std::cout << std::dec << ((buf_in[26] << 8) + buf_in[25]) * 0.070f << std::endl;
 		break;
 	default:
 		break;
 	}
 }
 
-int JoyconVec::addDevices()
-{
+int JoyconVec::addDevices() {
 
 	std::cout << "Searching for devices..." << std::endl;
 
@@ -183,13 +183,12 @@ int JoyconVec::addDevices()
 	return 0;
 }
 
-int JoyconVec::startDevices()
-{
+int JoyconVec::startDevices() {
+
 	if (this->size() == 0) {
 		std::cout << "No joy-con device detected!" << std::endl;
 		return -1;
-	}
-	else {
+	} else {
 		std::cout << "Starting capture for " << this->size() << " devices!" << std::endl;
 		for (Joycon& jc : *this) {
 			jc.capture();
