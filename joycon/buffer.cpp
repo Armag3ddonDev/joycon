@@ -1,48 +1,236 @@
 #include <iostream>
+#include <sstream>
 
 #include "buffer.h"
 
-/* ------- BUFFER ------- */
+/* ----- BYTE VECTOR ---- */
 
-void Buffer::printBuf(unsigned int size) const {
+std::string ByteVector::to_hex_string(std::size_t start, std::size_t length, std::string prefix, std::string delimiter) const {
 
-	if (size == 0 || size > buf.size()) {
-		size = buf.size();
+	if (start + length > vec.size()) {
+		throw std::out_of_range("Called 'to_hex_string' with out of bound values.");
 	}
 
-	for (unsigned int i = 0; i < size; ++i) {
-		const unsigned int& hx = buf[i];
-		if (hx <= 0xf)
-			std::cout << std::hex << 0 << hx << " "; //leading 0
-		else
-			std::cout << std::hex << hx << " ";
+	if (length == 0) {
+		return "";
 	}
-	std::cout << std::endl;
+
+	std::stringstream sstream;
+	sstream << prefix;
+
+	std::string del = "";
+
+	for (std::size_t idx = 0; idx < length; ++idx) {
+
+		const unsigned char& current_byte = vec[start + idx];
+
+		std::string fill = "";
+		if (current_byte <= 0x0F) { fill = "0"; }
+
+		sstream << del << fill << std::hex << static_cast<unsigned int>(current_byte);
+
+		del = delimiter;
+	}
+
+	return sstream.str();
 }
 
-const std::size_t Buffer::size() {
-	return buf.size();
+void ByteVector::print(unsigned int size) const {
+
+	if (size == 0 || size > vec.size()) {
+		size = vec.size();
+	}
+
+	std::cout << this->to_hex_string(0, size, "", " ") << std::endl;
+}
+
+unsigned long int ByteVector::to_int(std::size_t pos, std::size_t length, bool bigEndian) {
+
+	if (sizeof(unsigned long int) < length) {
+		throw std::overflow_error("Cant convert to int - length is too big.");
+	}
+
+	unsigned long int res{ 0 };
+
+	for (std::size_t i = 0; i < length; ++i) {
+		std::size_t idx = (bigEndian) ? i : length - 1 - i;
+		res = (res << 8) + vec[pos + idx];
+	}
+
+	return res;
 }
 
 /* ---- INPUT BUFFER ---- */
+
+InputBuffer::InputBuffer(bool bEnabledNFC) : 
+	BufferBase(bEnabledNFC ? 362 : 50)
+{
+
+}
 
 void InputBuffer::clean() {
 	std::fill(buf.begin(), buf.end(), 0);
 }
 
-unsigned char& InputBuffer::operator[](std::size_t idx) { 
-	return buf[idx];
-}
-
-unsigned char* InputBuffer::data() { 
-	return buf.data();
-}
-
-unsigned char& InputBuffer::cmd() {
+const unsigned char& InputBuffer::get_cmd() const {
 	return buf[0];
 }
 
+const unsigned char& InputBuffer::get_timer() const {
+	return buf[1];
+}
+
+POWER InputBuffer::get_battery_level() const {
+
+	unsigned char battery_level = buf[2] & 0xF;
+	if (battery_level == 0) {
+		return POWER::EMPTY;
+	} else if (battery_level < 2) {
+		return POWER::CRITICAL;
+	} else if (battery_level < 4) {
+		return POWER::LOW;
+	} else if (battery_level < 6) {
+		return POWER::MEDIUM;
+	} else {
+		return POWER::FULL;
+	}
+}
+
+const unsigned char& InputBuffer::get_ACK() const {
+	return buf[13];
+}
+
+const unsigned char& InputBuffer::get_subcommandID_reply() const {
+	return buf[14];
+}
+
+const unsigned char&  InputBuffer::get_reply_data(std::size_t idx) const {
+
+	this->check_ID(0x21);
+
+	if (!(idx < 35)) {
+		throw std::out_of_range("Index must be less than 35.");
+	}
+	return buf[15 + idx];
+}
+
+ByteVector::const_iterator InputBuffer::get_reply_data_start() const {
+
+	this->check_ID(0x21);
+
+	return buf.begin() + 15;
+}
+
+ByteVector::const_iterator InputBuffer::get_reply_data_end() const {
+
+	this->check_ID(0x21);
+
+	return buf.begin() + 49 + 1;
+}
+
+const unsigned char&  InputBuffer::get_MCU_FW_update_report(std::size_t idx) const {
+
+	this->check_ID(0x23);
+
+	if (!(idx < 37)) {
+		throw std::out_of_range("Index must be less than 37.");
+	}
+	return buf[13 + idx];
+}
+
+ByteVector::const_iterator InputBuffer::get_MCU_FW_update_report_start() const {
+
+	this->check_ID(0x23);
+
+	return buf.begin() + 13;
+}
+
+ByteVector::const_iterator InputBuffer::get_MCU_FW_update_report_end() const {
+
+	this->check_ID(0x23);
+
+	return buf.begin() + 49 + 1;
+}
+
+Gyro InputBuffer::get_Gyro() {
+
+	this->check_ID({0x30, 0x31, 0x32, 0x33});
+
+	return Gyro();
+}
+
+Accel InputBuffer::get_Acc() {
+
+	this->check_ID({ 0x30, 0x31, 0x32, 0x33 });
+
+	return Accel();
+}
+
+const unsigned char&  InputBuffer::get_NFC_IR_input_report(std::size_t idx) const {
+
+	this->check_ID(0x31);
+
+	if (!this->enabledNFC()) {
+		throw std::runtime_error("Wrong buffer size. NFC/IR require buffer of size 361.");
+	}
+
+	if (!(idx < 313)) {
+		throw std::out_of_range("Index must be less than 35.");
+	}
+
+	return buf[49 + idx];
+}
+
+ByteVector::const_iterator InputBuffer::get_NFC_IR_input_report_start() const {
+	this->check_ID(0x31);
+
+	if (!this->enabledNFC()) {
+		throw std::runtime_error("Wrong buffer size. NFC/IR require buffer of size 361.");
+	}
+	return buf.begin() + 49;
+}
+
+ByteVector::const_iterator InputBuffer::get_NFC_IR_input_report_end() const {
+	this->check_ID(0x31);
+
+	if (!this->enabledNFC()) {
+		throw std::runtime_error("Wrong buffer size. NFC/IR require buffer of size 361.");
+	}
+	return buf.begin() + 361 + 1;
+}
+
+void InputBuffer::check_ID(unsigned char valid) const {
+	const unsigned char& ID = this->get_cmd();
+	if (ID != valid) {
+		std::stringstream error;
+		error << "Wrong mode! ID should be " << std::hex << static_cast<unsigned int>(valid) 
+			<< ", but ID is " << std::hex << static_cast<unsigned int>(ID) << std::endl;
+		throw std::runtime_error(error.str());
+	}
+}
+
+void InputBuffer::check_ID(std::unordered_set<unsigned char> valid_list) const {
+	const unsigned char& ID = this->get_cmd();
+	if (valid_list.find(ID) == valid_list.end()) {
+		std::stringstream error;
+		error << "Wrong mode! ID should be in {";
+		std::string del = "";
+		for (auto valid : valid_list) {
+			error << del << std::hex << static_cast<unsigned int>(valid);
+			del = ", ";
+		}
+			error << "}, but ID is " << std::hex << static_cast<unsigned int>(ID) << std::endl;
+		throw std::runtime_error(error.str());
+	}
+}
+
 /* ---- OUTPUT BUFFER --- */
+
+OutputBuffer::OutputBuffer(std::size_t dataSize) : BufferBase(11 + dataSize) {
+
+	this->set_RL(0x00, 0x01, 0x40, 0x40);
+	this->set_RR(0x00, 0x01, 0x40, 0x40);
+}
 
 void OutputBuffer::set_cmd(unsigned char in) {
 	buf[0] = in;
@@ -72,13 +260,9 @@ void OutputBuffer::set_RR(unsigned char a, unsigned char b, unsigned char c, uns
 
 void OutputBuffer::set_data(std::vector<unsigned char> data) {
 
-	if (data.size() + 11 > buf.size()) {
-		std::cout << "WARNING: skipping data of size " << data.size() << ". Exceding max buffer size." << std::endl;
-	} else {
-		std::copy(std::begin(data), std::end(data), std::begin(buf) + 11);
+	if (data.size() + 11 != buf.size()) {
+		throw std::out_of_range("Data does not fit in the OutputBuffer.");
 	}
-}
 
-const unsigned char* OutputBuffer::data() {
-	return buf.data();
+	std::copy(std::begin(data), std::end(data), std::begin(buf) + 11);
 }
