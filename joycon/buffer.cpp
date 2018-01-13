@@ -3,26 +3,54 @@
 
 #include "buffer.h"
 
-/* ----- BYTE VECTOR ---- */
+/* ------ BYTE BASE ----- */
 
-std::string ByteVector::to_hex_string(std::size_t start, std::size_t length, std::string prefix, std::string delimiter) const {
+unsigned long int ByteBase::to_int(std::size_t start, std::size_t length, bool bigEndian) const {
 
-	if (start + length > vec.size()) {
-		throw std::out_of_range("Called 'to_hex_string' with out of bound values.");
+	if (length + start > this->size()) {
+		throw std::out_of_range("Length is too big!");
 	}
 
-	if (length == 0) {
-		return "";
+	return this->to_int(this->begin() + start, length, bigEndian);
+}
+
+unsigned long int ByteBase::to_int(const_byte_iterator it_begin, std::size_t length, bool bigEndian = true) const {
+
+	if (sizeof(unsigned long int) < length) {
+		throw std::overflow_error("Cant convert to int - length is too big.");
 	}
+
+	unsigned long int res{ 0 };
+
+	for (std::size_t i = 0; i < length; ++i) {
+		std::size_t idx = (bigEndian) ? i : length - 1 - i;
+		res = (res << 8) + *(it_begin + idx);
+	}
+
+	return res;
+}
+
+std::string ByteBase::to_hex_string(std::size_t start, std::size_t length, std::string prefix = "0x", std::string delimiter = "") const {
+
+	if (length + start > this->size()) {
+		throw std::out_of_range("Length is too big!");
+	}
+
+	return this->to_hex_string(this->begin() + start, this->begin() + start + length - 1, prefix, delimiter);
+}
+
+std::string ByteBase::to_hex_string(const_byte_iterator it_begin, const_byte_iterator it_end, std::string prefix = "0x", std::string delimiter = "") const {
 
 	std::stringstream sstream;
-	sstream << prefix;
+	if (it_begin != it_end) {
+		sstream << prefix;
+	}
 
 	std::string del = "";
 
-	for (std::size_t idx = 0; idx < length; ++idx) {
+	for (const_byte_iterator it = it_begin; it != it_end; ++it) {
 
-		const unsigned char& current_byte = vec[start + idx];
+		const unsigned char& current_byte = *it;
 
 		std::string fill = "";
 		if (current_byte <= 0x0F) { fill = "0"; }
@@ -35,29 +63,16 @@ std::string ByteVector::to_hex_string(std::size_t start, std::size_t length, std
 	return sstream.str();
 }
 
-void ByteVector::print(unsigned int size) const {
-
-	if (size == 0 || size > vec.size()) {
-		size = vec.size();
+void ByteBase::print(unsigned int size) const {
+	if (size > this->size()) {
+		throw std::out_of_range("Size is too big!");
 	}
-
-	std::cout << this->to_hex_string(0, size, "", " ") << std::endl;
+	std::cout << this->to_hex_string(this->begin(), this->begin + size, "", " ");
 }
 
-unsigned long int ByteVector::to_int(std::size_t pos, std::size_t length, bool bigEndian) {
+void ByteBase::print(const_byte_iterator it_begin, const_byte_iterator it_end) const {
 
-	if (sizeof(unsigned long int) < length) {
-		throw std::overflow_error("Cant convert to int - length is too big.");
-	}
-
-	unsigned long int res{ 0 };
-
-	for (std::size_t i = 0; i < length; ++i) {
-		std::size_t idx = (bigEndian) ? i : length - 1 - i;
-		res = (res << 8) + vec[pos + idx];
-	}
-
-	return res;
+	std::cout << to_hex_string(it_begin, it_end, "", " ") << std::endl;
 }
 
 /* ---- INPUT BUFFER ---- */
@@ -104,6 +119,11 @@ const unsigned char& InputBuffer::get_subcommandID_reply() const {
 	return buf[14];
 }
 
+const ByteSubVector InputBuffer::get_reply_data() const {
+	this->check_ID(0x21);
+	return ByteSubVector(buf.begin() + 15, buf.begin() + 49 + 1);
+}
+
 const unsigned char&  InputBuffer::get_reply_data(std::size_t idx) const {
 
 	this->check_ID(0x21);
@@ -114,18 +134,9 @@ const unsigned char&  InputBuffer::get_reply_data(std::size_t idx) const {
 	return buf[15 + idx];
 }
 
-ByteVector::const_iterator InputBuffer::get_reply_data_start() const {
-
-	this->check_ID(0x21);
-
-	return buf.begin() + 15;
-}
-
-ByteVector::const_iterator InputBuffer::get_reply_data_end() const {
-
-	this->check_ID(0x21);
-
-	return buf.begin() + 49 + 1;
+const ByteSubVector InputBuffer::get_MCU_FW_update_report() const {
+	this->check_ID(0x23);
+	return ByteSubVector(buf.begin() + 13, buf.begin() + 49 + 1);
 }
 
 const unsigned char&  InputBuffer::get_MCU_FW_update_report(std::size_t idx) const {
@@ -138,18 +149,12 @@ const unsigned char&  InputBuffer::get_MCU_FW_update_report(std::size_t idx) con
 	return buf[13 + idx];
 }
 
-ByteVector::const_iterator InputBuffer::get_MCU_FW_update_report_start() const {
+const Gyro InputBuffer::get_Gyro() {
 
-	this->check_ID(0x23);
-
-	return buf.begin() + 13;
 }
 
-ByteVector::const_iterator InputBuffer::get_MCU_FW_update_report_end() const {
+const Accel InputBuffer::get_Acc() {
 
-	this->check_ID(0x23);
-
-	return buf.begin() + 49 + 1;
 }
 
 Gyro InputBuffer::get_Gyro() {
@@ -166,6 +171,11 @@ Accel InputBuffer::get_Acc() {
 	return Accel();
 }
 
+const ByteSubVector InputBuffer::get_NFC_IR_input_report() const {
+	this->check_ID(0x21);
+	return ByteSubVector(buf.begin() + 49, buf.begin() + 361 + 1);
+}
+
 const unsigned char&  InputBuffer::get_NFC_IR_input_report(std::size_t idx) const {
 
 	this->check_ID(0x31);
@@ -179,24 +189,6 @@ const unsigned char&  InputBuffer::get_NFC_IR_input_report(std::size_t idx) cons
 	}
 
 	return buf[49 + idx];
-}
-
-ByteVector::const_iterator InputBuffer::get_NFC_IR_input_report_start() const {
-	this->check_ID(0x31);
-
-	if (!this->enabledNFC()) {
-		throw std::runtime_error("Wrong buffer size. NFC/IR require buffer of size 361.");
-	}
-	return buf.begin() + 49;
-}
-
-ByteVector::const_iterator InputBuffer::get_NFC_IR_input_report_end() const {
-	this->check_ID(0x31);
-
-	if (!this->enabledNFC()) {
-		throw std::runtime_error("Wrong buffer size. NFC/IR require buffer of size 361.");
-	}
-	return buf.begin() + 361 + 1;
 }
 
 void InputBuffer::check_ID(unsigned char valid) const {
