@@ -108,11 +108,11 @@ public:
 	ByteVector SPI_flash_read(ByteVector address, unsigned char length);
 
 #ifdef ENABLE_UNTESTED
-	void SPI_flash_write();
+	void SPI_flash_write(ByteVector address, unsigned char length, ByteVector data);
 #endif
 
 #ifdef ENABLE_UNTESTED
-	void SPI_sector_erase();
+	void SPI_sector_erase(ByteVector address);
 #endif
 
 	void set_player_lights(PLAYER_LIGHTS arg);
@@ -128,10 +128,9 @@ public:
 
 #ifdef ENABLE_UNTESTED
 	void write_IMU_register(unsigned char address, unsigned char value);
-#endif
-
 	unsigned char read_IMU_register(unsigned char address);
 	ByteVector read_IMU_registers(unsigned char start_address, unsigned char amount);
+#endif
 
 	void enable_vibration(bool enable);
 

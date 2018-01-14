@@ -135,7 +135,7 @@ JoyconDeviceInfo Joycon::request_device_info() {
 	InputBuffer buff_in = this->send_command(0x01, 0x02, {}, true);
 
 	JoyconDeviceInfo info;
-	ByteVector data = buff_in.get_reply_data();
+	ByteVector data = buff_in.get_reply_data(0, 12);
 	info.firmwareVersion = std::to_string(data[0]) + "." + std::to_string(data[1]);
 	info.joyconType = data[2];
 	info.mac = data.to_hex_string(4, 6, "", ":");
@@ -160,7 +160,7 @@ TriggerButtonElapsedTime Joycon::trigger_button_elapsed_time() {
 	InputBuffer buff_in = this->send_command(0x01, 0x04, {}, true);
 
 	TriggerButtonElapsedTime res;
-	ByteVector data = buff_in.get_reply_data();
+	ByteVector data = buff_in.get_reply_data(0, 14);
 	res.L = std::chrono::milliseconds(data.to_int(0, 2, false));
 	res.R = std::chrono::milliseconds(data.to_int(2, 2, false));
 	res.ZL = std::chrono::milliseconds(data.to_int(4, 2, false));
@@ -196,6 +196,10 @@ ByteVector Joycon::SPI_flash_read(ByteVector address, unsigned char length) {
 		throw std::runtime_error("Dimension mismatch!");
 	}
 
+	if (length > 0x1D) {
+		throw std::runtime_error("length must be less than 0x1D.");
+	}
+
 	ByteVector data(5);
 	address.swap();	// little endian
 	std::copy(address.begin(), address.end(), data.begin());
@@ -217,14 +221,63 @@ ByteVector Joycon::SPI_flash_read(ByteVector address, unsigned char length) {
 }
 
 #ifdef ENABLE_UNTESTED
-void Joycon::SPI_flash_write(ByteVector address) {
-	InputBuffer buff_in = this->send_command(0x01, 0x11, {}, true);
+void Joycon::SPI_flash_write(ByteVector address, unsigned char length, ByteVector data) {
+
+	if (length > 0x1D) {
+		throw std::runtime_error("length must be less than 0x1D.");
+	}
+
+	ByteVector data_send(5 + data.size());
+	address.swap();	// little endian
+	std::copy(address.begin(), address.end(), data_send.begin());
+	data[4] = length;
+	std::copy(data.begin(), data.end(), data_send.begin() + 5);
+
+	InputBuffer buff_in = this->send_command(0x01, 0x11, data_send, true);
+
+	if (buff_in.get_subcommandID_reply() != 0x91   ||
+		buff_in.get_reply_data_at(0) != address[0] ||
+		buff_in.get_reply_data_at(1) != address[1] ||
+		buff_in.get_reply_data_at(2) != address[2] ||
+		buff_in.get_reply_data_at(3) != address[3] ||
+		buff_in.get_reply_data_at(4) != length)
+	{
+		throw std::runtime_error("Did not receive correct answer!");
+	}
+
+	if (buff_in.get_reply_data_at(5) != 0x01) {
+		throw std::runtime_error("SPI-write failed.")
+	}
 }
 #endif
 
 #ifdef ENABLE_UNTESTED
-void Joycon::SPI_sector_erase() {
+void Joycon::SPI_sector_erase(ByteVector address) {
+
+	if (length > 0x1D) {
+		throw std::runtime_error("length must be less than 0x1D.");
+	}
+
+	ByteVector data_send(5 + data.size());
+	address.swap();	// little endian
+	std::copy(address.begin(), address.end(), data_send.begin());
+	data[4] = length;
+	std::copy(data.begin(), data.end(), data_send.begin() + 5);
+
 	InputBuffer buff_in = this->send_command(0x01, 0x12, {}, true);
+
+	if (buff_in.get_subcommandID_reply() != 0x92   ||
+		buff_in.get_reply_data_at(0) != address[0] ||
+		buff_in.get_reply_data_at(1) != address[1] ||
+		buff_in.get_reply_data_at(2) != address[2] ||
+		buff_in.get_reply_data_at(3) != address[3])
+	{
+		throw std::runtime_error("Did not receive correct answer!");
+	}
+
+	if (buff_in.get_reply_data_at(4) != 0x00) {
+		throw std::runtime_error("SPI-erase failed.")
+	}
 }
 #endif
 
@@ -263,40 +316,49 @@ void Joycon::set_IMU_sensitivity(unsigned char gyro_sens, unsigned char acc_sens
 
 #ifdef ENABLE_UNTESTED
 void Joycon::write_IMU_register(unsigned char address, unsigned char value) {
+	check_input_arguments({}, address, "Invalid start_address");	// <-- TODO
 	this->send_command(0x01, 0x42, { address, 0x01, value }, true);
 }
 #endif
 
+#ifdef ENABLE_UNTESTED
 unsigned char Joycon::read_IMU_register(unsigned char address) {
 
-	check_input_arguments({}, address, "Invalid start_address");
+	check_input_arguments({}, address, "Invalid start_address");	// <-- TODO
 
 	InputBuffer buff_in = this->send_command(0x01, 0x43, { address, 0x01 }, true);
 
-	if ((buff_in.get_ACK() == 0xC0) && buff_in.get_subcommandID_reply() == 0x43) {
-		return buff_in.get_reply_data_at(0);
-	}
-	else {
+	if (buff_in.get_ACK() != 0xC0 || 
+		buff_in.get_subcommandID_reply() != 0x43 || 
+		buff_in.get_replay_data_at(0) != address ||
+		buff_in.get_reply_data_at(1) != 0x01)
+	{
 		throw std::runtime_error("Did not receive correct answer!");
 	}
 
+	return buff_in.get_reply_data_at(2);
 }
+#endif
 
+#ifdef ENABLE_UNTESTED
 ByteVector Joycon::read_IMU_registers(unsigned char start_address, unsigned char amount) {
 
-	check_input_arguments({}, start_address, "Invalid start_address");
+	check_input_arguments({}, start_address, "Invalid start_address");	// <-- TODO
 	if (amount > 0x20) { throw std::invalid_argument("Max amount is 0x20."); }
 
 	InputBuffer buff_in = this->send_command(0x01, 0x43, { start_address, amount }, true);
 
-	if ( (buff_in.get_ACK() == 0xC0) && buff_in.get_subcommandID_reply() == 0x43) {
-		return buff_in.get_reply_data();
-	}
-	else {
+	if (buff_in.get_ACK() != 0xC0 ||
+		buff_in.get_subcommandID_reply() != 0x43 ||
+		buff_in.get_replay_data_at(0) != address ||
+		buff_in.get_reply_data_at(1) != amount)
+	{
 		throw std::runtime_error("Did not receive correct answer!");
 	}
 
+	return buff_in.get_reply_data(2);
 }
+#endif
 
 void Joycon::enable_vibration(bool enable) {
 	this->send_command(0x01, 0x48, { static_cast<unsigned char>(enable) }, false);
@@ -305,16 +367,17 @@ void Joycon::enable_vibration(bool enable) {
 POWER Joycon::get_regulated_voltage() {
 	InputBuffer buff_in = this->send_command(0x01, 0x50, {}, true);
 
-	if ((buff_in.get_ACK() == 0xD0) && (buff_in.get_subcommandID_reply() == 0x51)) {
-		unsigned long int power_level = buff_in.get_reply_data().to_int(0, 2, false);
-		if (power_level <= 0x059F) { return POWER::CRITICAL; }
-		else if (power_level <= 0x05DF) { return POWER::LOW; }
-		else if (power_level <= 0x0617) { return POWER::MEDIUM; }
-		else { return POWER::FULL; }
-	}
-	else {
+	if (buff_in.get_ACK() != 0xD0 ||
+		buff_in.get_subcommandID_reply() == 0x50)
+	{
 		throw std::runtime_error("Did not receive correct answer!");
 	}
+
+	unsigned long int power_level = buff_in.get_reply_data(0, 2).to_int(false);
+	if (power_level <= 0x059F) { return POWER::CRITICAL; }
+	else if (power_level <= 0x05DF) { return POWER::LOW; }
+	else if (power_level <= 0x0617) { return POWER::MEDIUM; }
+	else { return POWER::FULL; }
 }
 
 void Joycon::check_input_arguments(std::unordered_set<unsigned char> list, unsigned char arg, std::string error_msg) const {

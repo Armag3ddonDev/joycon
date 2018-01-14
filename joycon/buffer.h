@@ -27,9 +27,11 @@ public:
 	virtual const_byte_iterator begin() const = 0;
 	virtual const_byte_iterator end() const = 0;
 
+	unsigned long int to_int(bool bigEndian = true) const;
 	unsigned long int to_int(std::size_t start,            std::size_t length, bool bigEndian = true) const;
 	unsigned long int to_int(const_byte_iterator it_begin, std::size_t length, bool bigEndian = true) const;
 
+	std::string to_hex_string(std::string prefix = "0x", std::string delimiter = "") const;
 	std::string to_hex_string(std::size_t start,            std::size_t length,         std::string prefix = "0x", std::string delimiter = "") const;
 	std::string to_hex_string(const_byte_iterator it_begin, const_byte_iterator it_end, std::string prefix = "0x", std::string delimiter = "") const;
 	
@@ -122,7 +124,7 @@ public:
 	const unsigned char& get_subcommandID_reply() const;
 
 	// ID 21
-	ByteVector get_reply_data(std::size_t offset = 0) const;
+	ByteVector get_reply_data(std::size_t offset = 0, std::size_t length = 0) const;
 	const unsigned char&  get_reply_data_at(std::size_t idx) const;
 
 	// ID 23

@@ -7,6 +7,11 @@
 /* ------ BYTE BASE ----- */
 
 template <typename T>
+unsigned long int ByteBase<T>::to_int(bool bigEndian) const { 
+	return to_int(this->begin(), this->size(), bigEndian);
+}
+
+template <typename T>
 unsigned long int ByteBase<T>::to_int(std::size_t start, std::size_t length, bool bigEndian) const {
 
 	if (length + start > this->size()) {
@@ -31,6 +36,11 @@ unsigned long int ByteBase<T>::to_int(const_byte_iterator it_begin, std::size_t 
 	}
 
 	return res;
+}
+
+template <typename T>
+std::string ByteBase<T>::to_hex_string(std::string prefix, std::string delimiter) const {
+	return to_hex_string(this->begin(), this->end(), prefix, delimiter);
 }
 
 template <typename T>
@@ -142,9 +152,16 @@ const unsigned char& InputBuffer::get_subcommandID_reply() const {
 	return buf[14];
 }
 
-ByteVector InputBuffer::get_reply_data(std::size_t offset) const {
+ByteVector InputBuffer::get_reply_data(std::size_t offset, std::size_t length) const {
 	this->check_ID(0x21);
-	return ByteVector(buf.begin() + 15 + offset, buf.begin() + 15 + 35);
+
+	if (length == 0) {
+		length = 35;
+	} else if (length > 35) {
+		throw std::out_of_range("Length is too big!");
+	}
+
+	return ByteVector(buf.begin() + 15 + offset, buf.begin() + 15 + length);
 }
 
 const unsigned char&  InputBuffer::get_reply_data_at(std::size_t idx) const {
