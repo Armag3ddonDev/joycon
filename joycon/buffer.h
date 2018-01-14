@@ -27,13 +27,14 @@ struct Accel {
 typedef std::vector<unsigned char>::iterator byte_iterator;
 typedef std::vector<unsigned char>::const_iterator const_byte_iterator;
 
+// function collection for byte-containers
 class ByteBase {
 
 public:
 
-	virtual std::size_t size() const;
-	virtual const_byte_iterator begin() const;
-	virtual const_byte_iterator end() const;
+	virtual std::size_t size() const = 0;
+	virtual const_byte_iterator begin() const = 0;
+	virtual const_byte_iterator end() const = 0;
 
 	unsigned long int to_int(std::size_t start,            std::size_t length, bool bigEndian = true) const;
 	unsigned long int to_int(const_byte_iterator it_begin, std::size_t length, bool bigEndian = true) const;
@@ -45,52 +46,13 @@ public:
 	void print(const_byte_iterator it_begin, const_byte_iterator it_end) const;
 };
 
-class ByteSubVector : public ByteBase {
-public: 
-	ByteSubVector(byte_iterator it_begin, byte_iterator it_end) :
-		it_begin(it_begin),
-		it_end(it_end),
-		n(std::distance(it_begin, it_end))
-	{}
-
-	ByteSubVector(ByteSubVector&) = default;
-
-	std::size_t size() const { return n; }
-
-	unsigned char* data() { return &(*it_begin); }
-	const unsigned char* data() const { return &(*it_begin); }
-
-	byte_iterator begin() { return it_begin; }
-	byte_iterator end() { return it_end; }
-	const_byte_iterator begin() const { return it_begin; }
-	const_byte_iterator end() const { return it_end; }
-
-	unsigned char& operator[](std::size_t idx) { return *(this->begin() + idx); }
-	const unsigned char& operator[](std::size_t idx) const { return *(this->begin() + idx); }
-
-	unsigned char& at(std::size_t idx) { 
-		if (!(idx < this->size())) throw std::out_of_range("idx >= size");
-		return this->operator[](idx); 
-	}
-	const unsigned char& at(std::size_t idx) const {
-		if (!(idx < this->size())) throw std::out_of_range("idx >= size");
-		return this->operator[](idx);
-	}
-
-private:
-	byte_iterator it_begin;
-	byte_iterator it_end;
-	std::size_t n;
-};
-
-
 // non-resizable minimal std::vector<unsigned char> class
 class ByteVector : public ByteBase {
 public:
 	ByteVector() {}
 	ByteVector(std::size_t n) : vec(n, 0) {}
+	ByteVector(const_byte_iterator it_start, const_byte_iterator it_end) : vec(it_start, it_end) {}
 	ByteVector(const ByteVector&) = default;
-	ByteVector(const ByteSubVector& other) : vec(other.begin(), other.end()) {}
 
 	std::size_t size() const { return vec.size(); }
 
@@ -112,7 +74,7 @@ private:
 	std::vector<unsigned char> vec;
 };
 
-// only expose some functions of ByteVector
+// only expose some functions of ByteVector to BufferBase
 class BufferBase : protected ByteVector {
 public:
 	BufferBase(std::size_t size) : ByteVector(size), buf(*this) {}
@@ -126,11 +88,14 @@ protected:
 	ByteVector& buf;
 };
 
+// buff_in.get_reply_data().to_int(0, 2);
 
-// ID 21		: size 50
-// ID 23		: size 50
-// ID 30/32/33	: size 49
-// ID 31		: size 362
+// ID 21:	... | 13 | 14 | 15 - 49 (SUBCMD_reply)		size 50
+// ID 23 :	... | 13 - 49 (MCU report)					size 50
+// ID 30 :	... | 13 - 48 (Axis/Gyro/Accel)				size 49
+// ID 32 :	... | 13 - 48 (Axis/Gyro/Accel)				size 49
+// ID 33 :	... | 13 - 48 (Axis/Gyro/Accel)				size 49
+// ID 31 :	... | 13 - 48 (Axis/Gyro/Accel) | 49 - 361	size 362	-> COPY
 class InputBuffer : public BufferBase {
 public:
 	InputBuffer(bool bEnabledNFC = false);
@@ -155,28 +120,37 @@ public:
 
 	// get_vibrator_input_report() const;
 
+	// ID 21
 	const unsigned char& get_ACK() const;
 
+	// ID 21
 	const unsigned char& get_subcommandID_reply() const;
 
-	const ByteSubVector get_reply_data() const;
+	// ID 21
+	ByteVector get_reply_data() const;
 	const unsigned char&  get_reply_data(std::size_t idx) const;
 
-	const ByteSubVector get_MCU_FW_update_report() const;
-	const unsigned char&  get_MCU_FW_update_report(std::size_t idx) const;
+	// ID 23
+	ByteVector get_MCU_FW_update_report() const;
 
-	const Gyro get_Gyro() const;
+	// ID 30, 31, 32, 33
+	ByteVector get_AxisData() const;
 
-	const Accel get_Acc() const;
-
-	const ByteSubVector get_NFC_IR_input_report() const;
-	const unsigned char&  get_NFC_IR_input_report(std::size_t idx) const;
+	// ID 31
+	ByteVector get_NFC_IR_input_report() const;
 
 private:
 	void check_ID(unsigned char valid) const;
 	void check_ID(std::unordered_set<unsigned char> valid_list) const;
 };
 
+
+// byte 0		: CMD
+// byte 1		: GP
+// byte 2 - 5	: Rumble left	(default (no rumble): 00 01 40 40)
+// byte 6 - 9	: Rumble right	(default (no rumble): 00 01 40 40)
+// byte 10		: SUBCMD
+// byte 11 - .. : data
 class OutputBuffer : public BufferBase {
 public:
 	OutputBuffer(std::size_t dataSize = 0);

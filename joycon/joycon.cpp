@@ -125,7 +125,7 @@ JoyconDeviceInfo Joycon::request_device_info() {
 	InputBuffer buff_in = this->send_command(0x01, 0x02, {}, true);
 
 	JoyconDeviceInfo info;
-	const ByteSubVector data = buff_in.get_reply_data();
+	ByteVector data = buff_in.get_reply_data();
 	info.firmwareVersion = std::to_string(data[0]) + "." + std::to_string(data[1]);
 	info.joyconType = data[2];
 	info.mac = data.to_hex_string(4, 6, "", ":");
@@ -150,7 +150,7 @@ TriggerButtonElapsedTime Joycon::trigger_button_elapsed_time() {
 	InputBuffer buff_in = this->send_command(0x01, 0x04, {}, true);
 
 	TriggerButtonElapsedTime res;
-	const ByteSubVector data = buff_in.get_reply_data();
+	ByteVector data = buff_in.get_reply_data();
 	res.L = std::chrono::milliseconds(data.to_int(0, 2, false));
 	res.R = std::chrono::milliseconds(data.to_int(2, 2, false));
 	res.ZL = std::chrono::milliseconds(data.to_int(4, 2, false));
@@ -180,7 +180,7 @@ void Joycon::set_shipment(bool enable) {
 }
 #endif
 
-const ByteSubVector Joycon::SPI_flash_read() {
+ByteVector Joycon::SPI_flash_read() {
 	InputBuffer buff_in = this->send_command(0x01, 0x10, {}, true);
 	return buff_in.get_reply_data();
 }
@@ -231,12 +231,27 @@ void Joycon::set_IMU_sensitivity(unsigned char gyro_sens, unsigned char acc_sens
 }
 
 #ifdef ENABLE_UNTESTED
-void Joycon::write_IMU_registers(unsigned char address, unsigned char value) {
+void Joycon::write_IMU_register(unsigned char address, unsigned char value) {
 	this->send_command(0x01, 0x42, { address, 0x01, value }, true);
 }
 #endif
 
-const ByteSubVector Joycon::read_IMU_registers(unsigned char start_address, unsigned char amount) {
+unsigned char Joycon::read_IMU_register(unsigned char address) {
+
+	check_input_arguments({}, address, "Invalid start_address");
+
+	InputBuffer buff_in = this->send_command(0x01, 0x43, { address, 0x01 }, true);
+
+	if ((buff_in.get_ACK() == 0xC0) && buff_in.get_subcommandID_reply() == 0x43) {
+		return buff_in.get_reply_data(0);
+	}
+	else {
+		throw std::runtime_error("Did not receive correct answer!");
+	}
+
+}
+
+ByteVector Joycon::read_IMU_registers(unsigned char start_address, unsigned char amount) {
 
 	check_input_arguments({}, start_address, "Invalid start_address");
 	if (amount > 0x20) { throw std::invalid_argument("Max amount is 0x20."); }
@@ -244,8 +259,7 @@ const ByteSubVector Joycon::read_IMU_registers(unsigned char start_address, unsi
 	InputBuffer buff_in = this->send_command(0x01, 0x43, { start_address, amount }, true);
 
 	if ( (buff_in.get_ACK() == 0xC0) && buff_in.get_subcommandID_reply() == 0x43) {
-		const ByteSubVector res = buff_in.get_reply_data();
-		return res;
+		return buff_in.get_reply_data();
 	}
 	else {
 		throw std::runtime_error("Did not receive correct answer!");

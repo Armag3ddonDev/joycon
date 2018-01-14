@@ -119,9 +119,9 @@ const unsigned char& InputBuffer::get_subcommandID_reply() const {
 	return buf[14];
 }
 
-const ByteSubVector InputBuffer::get_reply_data() const {
+ByteVector InputBuffer::get_reply_data() const {
 	this->check_ID(0x21);
-	return ByteSubVector(buf.begin() + 15, buf.begin() + 49 + 1);
+	return ByteVector(buf.begin() + 15, buf.begin() + 15 + 35);
 }
 
 const unsigned char&  InputBuffer::get_reply_data(std::size_t idx) const {
@@ -134,53 +134,24 @@ const unsigned char&  InputBuffer::get_reply_data(std::size_t idx) const {
 	return buf[15 + idx];
 }
 
-const ByteSubVector InputBuffer::get_MCU_FW_update_report() const {
+ByteVector InputBuffer::get_MCU_FW_update_report() const {
 	this->check_ID(0x23);
-	return ByteSubVector(buf.begin() + 13, buf.begin() + 49 + 1);
+	return ByteVector(buf.begin() + 13, buf.begin() + 13 + 37);
 }
 
-const unsigned char&  InputBuffer::get_MCU_FW_update_report(std::size_t idx) const {
-
-	this->check_ID(0x23);
-
-	if (!(idx < 37)) {
-		throw std::out_of_range("Index must be less than 37.");
-	}
-	return buf[13 + idx];
-}
-
-const Gyro InputBuffer::get_Gyro() const {
+ByteVector InputBuffer::get_AxisData() const {
 
 	this->check_ID({0x30, 0x31, 0x32, 0x33});
-
-	return Gyro();
+	return ByteVector(buf.begin() + 13, buf.begin() + 13 + 36);
 }
 
-const Accel InputBuffer::get_Acc() const {
-
-	this->check_ID({ 0x30, 0x31, 0x32, 0x33 });
-
-	return Accel();
-}
-
-const ByteSubVector InputBuffer::get_NFC_IR_input_report() const {
-	this->check_ID(0x21);
-	return ByteSubVector(buf.begin() + 49, buf.begin() + 361 + 1);
-}
-
-const unsigned char&  InputBuffer::get_NFC_IR_input_report(std::size_t idx) const {
-
+// ID 31
+ByteVector InputBuffer::get_NFC_IR_input_report() const {
 	this->check_ID(0x31);
-
 	if (!this->enabledNFC()) {
 		throw std::runtime_error("Wrong buffer size. NFC/IR require buffer of size 361.");
 	}
-
-	if (!(idx < 313)) {
-		throw std::out_of_range("Index must be less than 35.");
-	}
-
-	return buf[49 + idx];
+	return ByteVector(buf.begin() + 49, buf.begin() + 49 + 313);
 }
 
 void InputBuffer::check_ID(unsigned char valid) const {
