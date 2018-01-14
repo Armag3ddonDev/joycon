@@ -52,6 +52,48 @@ enum PLAYER_LIGHTS {
 	P3_FLASH = 1 << 7
 };
 
+// *WARNING* : All inputs are only nibbles (4bit). Everything else gets cut off.
+class HOME_LIGHT {
+public:
+	HOME_LIGHT() : vec(25) {}
+
+	// HEADER
+	// Byte 0 (HIGH) - amount_mini		: 0 - 15
+	// Byte 0  (LOW) - global_duration	: 8ms - 175ms, x0 = 0ms(OFF)
+	// Byte 1 (HIGH) - start_intensity	: x0 = 0%, xF = 100%
+	// Byte 1 ( LOW) - amount_full		: 1 - 15, x0 = repeat forever,
+	void set_header(unsigned char amount_mini, unsigned char global_duration, unsigned char start_intensity, unsigned char amount_full ) {
+		vec[0] = (amount_mini << 4) + (global_duration & 0xF);
+		vec[1] = (start_intensity << 4) + (amount_full & 0xF);
+	}
+
+	void set_mini_cycle(unsigned char idx, unsigned char intensity, unsigned char fading_transition_duration, unsigned char duration_multiplier) {
+		
+		idx &= 0xF;
+
+		if (idx == 0) {
+			throw std::invalid_argument("idx must be greater than 0.");
+		}
+
+		unsigned char bit_offset, data_byte, intensity_byte;
+		if (idx % 2 == 1) {
+			bit_offset = 4;
+			intensity_byte = 2 + 3 * (idx - 1) / 2;
+			data_byte = intensity_byte + 1;
+		} else {
+			bit_offset = 0;
+			intensity_byte = 2 + 3 * (idx - 2) / 2;
+			data_byte = intensity_byte + 2;
+		}
+		vec[intensity_byte] = (intensity & 0xF) << bit_offset;
+		vec[data_byte] = (fading_transition_duration << 4) + (duration_multiplier & 0xF);
+	}
+
+	const ByteVector& data() const { return vec; }
+
+	ByteVector vec;
+};
+
 constexpr PLAYER_LIGHTS operator|(PLAYER_LIGHTS X, PLAYER_LIGHTS Y) {
 	return static_cast<PLAYER_LIGHTS>(static_cast<unsigned char>(X) | static_cast<unsigned char>(Y));
 }
@@ -108,7 +150,7 @@ public:
 	ByteVector SPI_flash_read(ByteVector address, unsigned char length);
 
 #ifdef ENABLE_UNTESTED
-	void SPI_flash_write(ByteVector address, unsigned char length, ByteVector data);
+	void SPI_flash_write(ByteVector address, ByteVector data);
 #endif
 
 #ifdef ENABLE_UNTESTED
@@ -119,7 +161,7 @@ public:
 
 	PLAYER_LIGHTS get_player_lights();
 
-	void set_home_light();
+	void set_home_light(const HOME_LIGHT& led_data);
 
 	void enable_IMU(bool enable);
 

@@ -192,6 +192,8 @@ void Joycon::set_shipment(bool enable) {
 
 ByteVector Joycon::SPI_flash_read(ByteVector address, unsigned char length) {
 
+	// TODO: check if address is in valid range!
+
 	if (address.size() != 4) {
 		throw std::runtime_error("Dimension mismatch!");
 	}
@@ -200,12 +202,12 @@ ByteVector Joycon::SPI_flash_read(ByteVector address, unsigned char length) {
 		throw std::runtime_error("length must be less than 0x1D.");
 	}
 
-	ByteVector data(5);
+	ByteVector data_send(5);
 	address.swap();	// little endian
-	std::copy(address.begin(), address.end(), data.begin());
-	data[4] = length;
+	std::copy(address.begin(), address.end(), data_send.begin());
+	data_send[4] = length;
 
-	InputBuffer buff_in = this->send_command(0x01, 0x10, data, true);
+	InputBuffer buff_in = this->send_command(0x01, 0x10, data_send, true);
 
 	if (buff_in.get_subcommandID_reply() != 0x90   || 
 		buff_in.get_reply_data_at(0) != address[0] ||
@@ -221,16 +223,26 @@ ByteVector Joycon::SPI_flash_read(ByteVector address, unsigned char length) {
 }
 
 #ifdef ENABLE_UNTESTED
-void Joycon::SPI_flash_write(ByteVector address, unsigned char length, ByteVector data) {
+void Joycon::SPI_flash_write(ByteVector address, ByteVector data) {
 
-	if (length > 0x1D) {
+	// TODO: check if address is in valid range!
+
+	if (address.size() != 4) {
+		throw std::runtime_error("Dimension mismatch!");
+	}
+
+	if (data.size() > 0x1D) {
 		throw std::runtime_error("length must be less than 0x1D.");
 	}
 
 	ByteVector data_send(5 + data.size());
+
+	// write header
 	address.swap();	// little endian
 	std::copy(address.begin(), address.end(), data_send.begin());
-	data[4] = length;
+	data_send[4] = data.size();
+
+	// write data
 	std::copy(data.begin(), data.end(), data_send.begin() + 5);
 
 	InputBuffer buff_in = this->send_command(0x01, 0x11, data_send, true);
@@ -254,17 +266,13 @@ void Joycon::SPI_flash_write(ByteVector address, unsigned char length, ByteVecto
 #ifdef ENABLE_UNTESTED
 void Joycon::SPI_sector_erase(ByteVector address) {
 
-	if (length > 0x1D) {
-		throw std::runtime_error("length must be less than 0x1D.");
+	// TODO: check if address is in valid range!
+
+	if (address.size() != 4) {
+		throw std::runtime_error("Dimension mismatch!");
 	}
 
-	ByteVector data_send(5 + data.size());
-	address.swap();	// little endian
-	std::copy(address.begin(), address.end(), data_send.begin());
-	data[4] = length;
-	std::copy(data.begin(), data.end(), data_send.begin() + 5);
-
-	InputBuffer buff_in = this->send_command(0x01, 0x12, {}, true);
+	InputBuffer buff_in = this->send_command(0x01, 0x12, address.swapped(), true);
 
 	if (buff_in.get_subcommandID_reply() != 0x92   ||
 		buff_in.get_reply_data_at(0) != address[0] ||
@@ -288,16 +296,17 @@ void Joycon::set_player_lights(PLAYER_LIGHTS arg) {
 PLAYER_LIGHTS Joycon::get_player_lights() {
 	InputBuffer buff_in = this->send_command(0x01, 0x31, {}, true);
 
-	if ((buff_in.get_ACK() == 0xB0) && buff_in.get_subcommandID_reply() == 0x31) {
-		PLAYER_LIGHTS res = static_cast<PLAYER_LIGHTS>(buff_in.get_reply_data_at(0) & 0xFF);
-		return res;
-	} else {
+	if (buff_in.get_ACK() != 0xB0 || 
+		buff_in.get_subcommandID_reply() != 0x31) 
+	{
 		throw std::runtime_error("Did not receive correct answer!");
 	}
+
+	return static_cast<PLAYER_LIGHTS>(buff_in.get_reply_data_at(0) & 0xFF);
 }
 
-void Joycon::set_home_light() {
-	InputBuffer buff_in = this->send_command(0x01, 0x38, {}, false);
+void Joycon::set_home_light(const HOME_LIGHT& light_data) {
+	InputBuffer buff_in = this->send_command(0x01, 0x38, light_data.data(), false);
 }
 
 void Joycon::enable_IMU(bool enable) {
@@ -316,7 +325,7 @@ void Joycon::set_IMU_sensitivity(unsigned char gyro_sens, unsigned char acc_sens
 
 #ifdef ENABLE_UNTESTED
 void Joycon::write_IMU_register(unsigned char address, unsigned char value) {
-	check_input_arguments({}, address, "Invalid start_address");	// <-- TODO
+	check_input_arguments({}, address, "Invalid address");	// <-- TODO
 	this->send_command(0x01, 0x42, { address, 0x01, value }, true);
 }
 #endif
@@ -324,7 +333,7 @@ void Joycon::write_IMU_register(unsigned char address, unsigned char value) {
 #ifdef ENABLE_UNTESTED
 unsigned char Joycon::read_IMU_register(unsigned char address) {
 
-	check_input_arguments({}, address, "Invalid start_address");	// <-- TODO
+	check_input_arguments({}, address, "Invalid address");	// <-- TODO
 
 	InputBuffer buff_in = this->send_command(0x01, 0x43, { address, 0x01 }, true);
 
