@@ -24,11 +24,11 @@ before_install:
   - sudo update-alternatives --config gcc
   - sudo update-alternatives --config g++
   - sudo apt-get install libhidapi-dev -y #bluetooth api hidapi
-  - sudo apt-get install ninja-build -y #ninja
+#  - sudo apt-get install ninja-build -y #ninja
 
 before_script:
   - mkdir build; cd build
   - cmake -G Ninja ../joycon/CMakeLists.txt
 
 script:
-  - ninja
+  - make
