@@ -27,9 +27,8 @@ before_install:
 #  - sudo apt-get install ninja-build -y #ninja
 
 before_script:
-  - cd joycon/
   - mkdir build; cd build
-  - cmake ../CMakeLists.txt
+  - cmake ../joycon/
 
 script:
   - make
