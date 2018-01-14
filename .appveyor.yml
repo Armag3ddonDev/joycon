@@ -1,8 +1,8 @@
-  
+
+os: Previous Visual Studio 2015
 
 platform:
   - x86
-  - Any CPU
   
 configuration:
   - debug
@@ -10,6 +10,4 @@ configuration:
 build:
   parallel: true                  # enable MSBuild parallel builds
   project: joycon.sln
-  
-build_script:
-  - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars32.bat"
+
