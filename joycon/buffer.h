@@ -16,11 +16,14 @@ typedef std::vector<unsigned char>::iterator byte_iterator;
 typedef std::vector<unsigned char>::const_iterator const_byte_iterator;
 
 // function collection for byte-containers
+template <typename T>
 class ByteBase {
 
 public:
 
 	virtual std::size_t size() const = 0;
+	virtual byte_iterator begin() = 0;
+	virtual byte_iterator end() = 0;
 	virtual const_byte_iterator begin() const = 0;
 	virtual const_byte_iterator end() const = 0;
 
@@ -32,13 +35,19 @@ public:
 	
 	void print(unsigned int size = 0) const;
 	void print(const_byte_iterator it_begin, const_byte_iterator it_end) const;
+
+	void swap();
+	T swapped() const;
+
+	operator long unsigned int() { return this->to_int(this->begin(), this->size()); }
 };
 
 // non-resizable minimal std::vector<unsigned char> class
-class ByteVector : public ByteBase {
+class ByteVector : public ByteBase<ByteVector>{
 public:
 	ByteVector() {}
 	ByteVector(std::size_t n) : vec(n, 0) {}
+	ByteVector(std::initializer_list<unsigned char> l) : vec(l) {}
 	ByteVector(const_byte_iterator it_start, const_byte_iterator it_end) : vec(it_start, it_end) {}
 	ByteVector(const ByteVector&) = default;
 
@@ -85,14 +94,14 @@ protected:
 // --> InputBuffer size is eather 50 or 362, depending on if NFC is enabled
 class InputBuffer : public BufferBase {
 public:
-	InputBuffer(bool bEnabledNFC = false);
+	InputBuffer(bool bEnabledNFC = false) : BufferBase(bEnabledNFC ? 362 : 50) {}
 
 	bool enabledNFC() const { return buf.size() == 362; }
 	void clean();
 	inline unsigned char* data() { return buf.data(); }
 	inline const unsigned char* data() const { return buf.data(); }
 
-	const unsigned char& get_cmd() const;
+	const unsigned char& get_ID() const;
 
 	const unsigned char& get_timer() const;
 
@@ -113,8 +122,8 @@ public:
 	const unsigned char& get_subcommandID_reply() const;
 
 	// ID 21
-	ByteVector get_reply_data() const;
-	const unsigned char&  get_reply_data(std::size_t idx) const;
+	ByteVector get_reply_data(std::size_t offset = 0) const;
+	const unsigned char&  get_reply_data_at(std::size_t idx) const;
 
 	// ID 23
 	ByteVector get_MCU_FW_update_report() const;
@@ -140,7 +149,7 @@ private:
 class OutputBuffer : public BufferBase {
 public:
 	OutputBuffer(std::size_t dataSize = 0);
-	OutputBuffer(OutputBuffer&) = default;
+	OutputBuffer(OutputBuffer&) = delete;
 
 	inline const unsigned char* data() const { return buf.data(); }
 
@@ -160,5 +169,5 @@ public:
 	void set_RR(unsigned char a, unsigned char b, unsigned char c, unsigned char d);
 
 	/// set data
-	void set_data(const std::vector<unsigned char>& data);
+	void set_data(const ByteVector& data);
 };

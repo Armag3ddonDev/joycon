@@ -70,7 +70,7 @@ public:
 	~Joycon();
 
 	void printDeviceInfo() const;
-	InputBuffer send_command(unsigned char cmd, unsigned char subcmd, const std::vector<unsigned char>& data, bool blocking = true);
+	InputBuffer send_command(unsigned char cmd, unsigned char subcmd, const ByteVector& data, bool blocking = true);
 	void capture();
 	void callback();
 
@@ -105,7 +105,7 @@ public:
 	void set_shipment(bool enable);
 #endif
 
-	ByteVector SPI_flash_read();
+	ByteVector SPI_flash_read(ByteVector address, unsigned char length);
 
 #ifdef ENABLE_UNTESTED
 	void SPI_flash_write();

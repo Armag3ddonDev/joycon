@@ -32,6 +32,16 @@ Joycon::Joycon(JOY_PID PID, wchar_t* serial_number) : package_number(0) {
 
 		std::cout << "Increasing data rate for Bluetooth..." << std::endl;
 		this->set_input_report_mode(0x30);
+
+		std::cout << "Reading SPI calibration..." << std::endl;
+		// this->factory_sensor_cal	= this->SPI_flash_read(0x6020, 0x18);
+		// this->factory_stick_cal	= this->SPI_flash_read(0x603D, 0x12);
+		// this->sensor_model		= this->SPI_flash_read(0x6080, 0x06);
+		// this->stick_model		= this->SPI_flash_read(0x6086, 0x12);
+		// this->&stick_model[0x12] = this->SPI_flash_read(0x6098, 0x12);
+		// this->user_stick_cal		= this->SPI_flash_read(0x8010, 0x16);
+		// this->user_sensor_cal	= this->SPI_flash_read(0x8026, 0x1A);
+
 	} catch (std::exception& e) {
 		hid_close(handle);
 		THROW("Constructor failed to initialize: " + e.what());
@@ -70,7 +80,7 @@ void Joycon::printDeviceInfo() const {
 	//std::wcout << L"	Indexed String 1: " << wstr << std::endl;
 }
 
-InputBuffer Joycon::send_command(unsigned char cmd, unsigned char subcmd, const std::vector<unsigned char>& data, bool blocking) {
+InputBuffer Joycon::send_command(unsigned char cmd, unsigned char subcmd, const ByteVector& data, bool blocking) {
 
 	if (blocking) { CHECK(hid_set_nonblocking(handle, 0)); }
 
@@ -107,7 +117,7 @@ void Joycon::callback() {
 		// Read requested state
 		CHECK(hid_read(handle, buff_in.data(), buff_in.size()));
 
-		if (buff_in.get_cmd() == 0x00) {
+		if (buff_in.get_ID() == 0x00) {
 			continue;
 		}
 
@@ -180,13 +190,34 @@ void Joycon::set_shipment(bool enable) {
 }
 #endif
 
-ByteVector Joycon::SPI_flash_read() {
-	InputBuffer buff_in = this->send_command(0x01, 0x10, {}, true);
-	return buff_in.get_reply_data();
+ByteVector Joycon::SPI_flash_read(ByteVector address, unsigned char length) {
+
+	if (address.size() != 4) {
+		throw std::runtime_error("Dimension mismatch!");
+	}
+
+	ByteVector data(5);
+	address.swap();	// little endian
+	std::copy(address.begin(), address.end(), data.begin());
+	data[4] = length;
+
+	InputBuffer buff_in = this->send_command(0x01, 0x10, data, true);
+
+	if (buff_in.get_subcommandID_reply() != 0x90   || 
+		buff_in.get_reply_data_at(0) != address[0] ||
+		buff_in.get_reply_data_at(1) != address[1] ||
+		buff_in.get_reply_data_at(2) != address[2] ||
+		buff_in.get_reply_data_at(3) != address[3] ||
+		buff_in.get_reply_data_at(4) != length) 
+	{
+		throw std::runtime_error("Did not receive correct answer!");
+	}
+
+	return buff_in.get_reply_data(4);
 }
 
 #ifdef ENABLE_UNTESTED
-void Joycon::SPI_flash_write() {
+void Joycon::SPI_flash_write(ByteVector address) {
 	InputBuffer buff_in = this->send_command(0x01, 0x11, {}, true);
 }
 #endif
@@ -205,7 +236,7 @@ PLAYER_LIGHTS Joycon::get_player_lights() {
 	InputBuffer buff_in = this->send_command(0x01, 0x31, {}, true);
 
 	if ((buff_in.get_ACK() == 0xB0) && buff_in.get_subcommandID_reply() == 0x31) {
-		PLAYER_LIGHTS res = static_cast<PLAYER_LIGHTS>(buff_in.get_reply_data(0) & 0xFF);
+		PLAYER_LIGHTS res = static_cast<PLAYER_LIGHTS>(buff_in.get_reply_data_at(0) & 0xFF);
 		return res;
 	} else {
 		throw std::runtime_error("Did not receive correct answer!");
@@ -243,7 +274,7 @@ unsigned char Joycon::read_IMU_register(unsigned char address) {
 	InputBuffer buff_in = this->send_command(0x01, 0x43, { address, 0x01 }, true);
 
 	if ((buff_in.get_ACK() == 0xC0) && buff_in.get_subcommandID_reply() == 0x43) {
-		return buff_in.get_reply_data(0);
+		return buff_in.get_reply_data_at(0);
 	}
 	else {
 		throw std::runtime_error("Did not receive correct answer!");

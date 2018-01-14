@@ -1,11 +1,13 @@
 #include <iostream>
 #include <sstream>
+#include <algorithm>
 
 #include "buffer.h"
 
 /* ------ BYTE BASE ----- */
 
-unsigned long int ByteBase::to_int(std::size_t start, std::size_t length, bool bigEndian) const {
+template <typename T>
+unsigned long int ByteBase<T>::to_int(std::size_t start, std::size_t length, bool bigEndian) const {
 
 	if (length + start > this->size()) {
 		throw std::out_of_range("Length is too big!");
@@ -14,7 +16,8 @@ unsigned long int ByteBase::to_int(std::size_t start, std::size_t length, bool b
 	return this->to_int(this->begin() + start, length, bigEndian);
 }
 
-unsigned long int ByteBase::to_int(const_byte_iterator it_begin, std::size_t length, bool bigEndian) const {
+template <typename T>
+unsigned long int ByteBase<T>::to_int(const_byte_iterator it_begin, std::size_t length, bool bigEndian) const {
 
 	if (sizeof(unsigned long int) < length) {
 		throw std::overflow_error("Cant convert to int - length is too big.");
@@ -30,7 +33,8 @@ unsigned long int ByteBase::to_int(const_byte_iterator it_begin, std::size_t len
 	return res;
 }
 
-std::string ByteBase::to_hex_string(std::size_t start, std::size_t length, std::string prefix, std::string delimiter) const {
+template <typename T>
+std::string ByteBase<T>::to_hex_string(std::size_t start, std::size_t length, std::string prefix, std::string delimiter) const {
 
 	if (length + start > this->size()) {
 		throw std::out_of_range("Length is too big!");
@@ -39,7 +43,8 @@ std::string ByteBase::to_hex_string(std::size_t start, std::size_t length, std::
 	return this->to_hex_string(this->begin() + start, this->begin() + start + length - 1, prefix, delimiter);
 }
 
-std::string ByteBase::to_hex_string(const_byte_iterator it_begin, const_byte_iterator it_end, std::string prefix, std::string delimiter) const {
+template <typename T>
+std::string ByteBase<T>::to_hex_string(const_byte_iterator it_begin, const_byte_iterator it_end, std::string prefix, std::string delimiter) const {
 
 	std::stringstream sstream;
 	if (it_begin != it_end) {
@@ -63,31 +68,49 @@ std::string ByteBase::to_hex_string(const_byte_iterator it_begin, const_byte_ite
 	return sstream.str();
 }
 
-void ByteBase::print(unsigned int size) const {
+template <typename T>
+void ByteBase<T>::print(unsigned int size) const {
 	if (size > this->size()) {
 		throw std::out_of_range("Size is too big!");
 	}
 	std::cout << this->to_hex_string(this->begin(), this->begin() + size, "", " ");
 }
 
-void ByteBase::print(const_byte_iterator it_begin, const_byte_iterator it_end) const {
+template <typename T>
+void ByteBase<T>::print(const_byte_iterator it_begin, const_byte_iterator it_end) const {
 
 	std::cout << to_hex_string(it_begin, it_end, "", " ") << std::endl;
 }
 
-/* ---- INPUT BUFFER ---- */
-
-InputBuffer::InputBuffer(bool bEnabledNFC) : 
-	BufferBase(bEnabledNFC ? 362 : 50)
-{
-
+template <typename T>
+void ByteBase<T>::swap() {
+	byte_iterator first = this->begin();
+	byte_iterator last = this->end();
+	while ((first != last) && (first != --last)) {
+		std::iter_swap(first, last);
+		++first;
+	}
 }
+
+template <typename T>
+T ByteBase<T>::swapped() const {
+	T res(this->begin(), this->end());
+	std::size_t n = this->size();
+	for (std::size_t i = 0; i < n; ++i) {
+		res[i] = *(this->begin() + i);
+	}
+	return res;
+}
+
+template class ByteBase<ByteVector>;
+
+/* ---- INPUT BUFFER ---- */
 
 void InputBuffer::clean() {
 	std::fill(buf.begin(), buf.end(), 0);
 }
 
-const unsigned char& InputBuffer::get_cmd() const {
+const unsigned char& InputBuffer::get_ID() const {
 	return buf[0];
 }
 
@@ -119,12 +142,12 @@ const unsigned char& InputBuffer::get_subcommandID_reply() const {
 	return buf[14];
 }
 
-ByteVector InputBuffer::get_reply_data() const {
+ByteVector InputBuffer::get_reply_data(std::size_t offset) const {
 	this->check_ID(0x21);
-	return ByteVector(buf.begin() + 15, buf.begin() + 15 + 35);
+	return ByteVector(buf.begin() + 15 + offset, buf.begin() + 15 + 35);
 }
 
-const unsigned char&  InputBuffer::get_reply_data(std::size_t idx) const {
+const unsigned char&  InputBuffer::get_reply_data_at(std::size_t idx) const {
 
 	this->check_ID(0x21);
 
@@ -155,7 +178,7 @@ ByteVector InputBuffer::get_NFC_IR_input_report() const {
 }
 
 void InputBuffer::check_ID(unsigned char valid) const {
-	const unsigned char& ID = this->get_cmd();
+	const unsigned char& ID = this->get_ID();
 	if (ID != valid) {
 		std::stringstream error;
 		error << "Wrong mode! ID should be " << std::hex << static_cast<unsigned int>(valid) 
@@ -165,7 +188,7 @@ void InputBuffer::check_ID(unsigned char valid) const {
 }
 
 void InputBuffer::check_ID(std::unordered_set<unsigned char> valid_list) const {
-	const unsigned char& ID = this->get_cmd();
+	const unsigned char& ID = this->get_ID();
 	if (valid_list.find(ID) == valid_list.end()) {
 		std::stringstream error;
 		error << "Wrong mode! ID should be in {";
@@ -213,10 +236,10 @@ void OutputBuffer::set_RR(unsigned char a, unsigned char b, unsigned char c, uns
 	buf[9] = d;
 }
 
-void OutputBuffer::set_data(const std::vector<unsigned char>& data) {
+void OutputBuffer::set_data(const ByteVector& data) {
 
 	if (data.size() + 11 != buf.size()) {
-		throw std::out_of_range("Data does not fit in the OutputBuffer.");
+		throw std::runtime_error("Size msimatch. Data does not fit in the OutputBuffer.");
 	}
 
 	std::copy(std::begin(data), std::end(data), std::begin(buf) + 11);
