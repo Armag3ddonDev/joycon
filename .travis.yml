@@ -28,7 +28,7 @@ before_install:
 
 before_script:
   - mkdir build; cd build
-  - cmake -G Ninja ../joycon/CMakeLists.txt
+  - cmake ../joycon/CMakeLists.txt
 
 script:
   - make
