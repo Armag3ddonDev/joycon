@@ -30,7 +30,8 @@ typedef std::vector<unsigned char>::const_iterator const_byte_iterator;
 class ByteBase {
 
 public:
-	virtual const std::size_t size() const;
+
+	virtual std::size_t size() const;
 	virtual const_byte_iterator begin() const;
 	virtual const_byte_iterator end() const;
 
@@ -54,18 +55,18 @@ public:
 
 	ByteSubVector(ByteSubVector&) = default;
 
-	const std::size_t size() const { return n; }
+	std::size_t size() const { return n; }
 
 	unsigned char* data() { return &(*it_begin); }
 	const unsigned char* data() const { return &(*it_begin); }
 
-	byte_iterator begin() { return begin(); }
-	byte_iterator end() { return end(); }
-	const_byte_iterator begin() const { return begin(); }
-	const_byte_iterator end() const { return end(); }
+	byte_iterator begin() { return it_begin; }
+	byte_iterator end() { return it_end; }
+	const_byte_iterator begin() const { return it_begin; }
+	const_byte_iterator end() const { return it_end; }
 
-	unsigned char& operator[](std::size_t idx) { return *(it_begin + idx); }
-	const unsigned char& operator[](std::size_t idx) const { return *(it_begin + idx); }
+	unsigned char& operator[](std::size_t idx) { return *(this->begin() + idx); }
+	const unsigned char& operator[](std::size_t idx) const { return *(this->begin() + idx); }
 
 	unsigned char& at(std::size_t idx) { 
 		if (!(idx < this->size())) throw std::out_of_range("idx >= size");
@@ -91,7 +92,7 @@ public:
 	ByteVector(const ByteVector&) = default;
 	ByteVector(const ByteSubVector& other) : vec(other.begin(), other.end()) {}
 
-	const std::size_t size() const { return vec.size(); }
+	std::size_t size() const { return vec.size(); }
 
 	unsigned char* data() { return vec.data(); }
 	const unsigned char* data() const { return vec.data(); }
@@ -164,9 +165,9 @@ public:
 	const ByteSubVector get_MCU_FW_update_report() const;
 	const unsigned char&  get_MCU_FW_update_report(std::size_t idx) const;
 
-	Gyro get_Gyro();
+	const Gyro get_Gyro() const;
 
-	Accel get_Acc();
+	const Accel get_Acc() const;
 
 	const ByteSubVector get_NFC_IR_input_report() const;
 	const unsigned char&  get_NFC_IR_input_report(std::size_t idx) const;

@@ -14,7 +14,7 @@ unsigned long int ByteBase::to_int(std::size_t start, std::size_t length, bool b
 	return this->to_int(this->begin() + start, length, bigEndian);
 }
 
-unsigned long int ByteBase::to_int(const_byte_iterator it_begin, std::size_t length, bool bigEndian = true) const {
+unsigned long int ByteBase::to_int(const_byte_iterator it_begin, std::size_t length, bool bigEndian) const {
 
 	if (sizeof(unsigned long int) < length) {
 		throw std::overflow_error("Cant convert to int - length is too big.");
@@ -30,7 +30,7 @@ unsigned long int ByteBase::to_int(const_byte_iterator it_begin, std::size_t len
 	return res;
 }
 
-std::string ByteBase::to_hex_string(std::size_t start, std::size_t length, std::string prefix = "0x", std::string delimiter = "") const {
+std::string ByteBase::to_hex_string(std::size_t start, std::size_t length, std::string prefix, std::string delimiter) const {
 
 	if (length + start > this->size()) {
 		throw std::out_of_range("Length is too big!");
@@ -39,7 +39,7 @@ std::string ByteBase::to_hex_string(std::size_t start, std::size_t length, std::
 	return this->to_hex_string(this->begin() + start, this->begin() + start + length - 1, prefix, delimiter);
 }
 
-std::string ByteBase::to_hex_string(const_byte_iterator it_begin, const_byte_iterator it_end, std::string prefix = "0x", std::string delimiter = "") const {
+std::string ByteBase::to_hex_string(const_byte_iterator it_begin, const_byte_iterator it_end, std::string prefix, std::string delimiter) const {
 
 	std::stringstream sstream;
 	if (it_begin != it_end) {
@@ -67,7 +67,7 @@ void ByteBase::print(unsigned int size) const {
 	if (size > this->size()) {
 		throw std::out_of_range("Size is too big!");
 	}
-	std::cout << this->to_hex_string(this->begin(), this->begin + size, "", " ");
+	std::cout << this->to_hex_string(this->begin(), this->begin() + size, "", " ");
 }
 
 void ByteBase::print(const_byte_iterator it_begin, const_byte_iterator it_end) const {
@@ -149,22 +149,14 @@ const unsigned char&  InputBuffer::get_MCU_FW_update_report(std::size_t idx) con
 	return buf[13 + idx];
 }
 
-const Gyro InputBuffer::get_Gyro() {
-
-}
-
-const Accel InputBuffer::get_Acc() {
-
-}
-
-Gyro InputBuffer::get_Gyro() {
+const Gyro InputBuffer::get_Gyro() const {
 
 	this->check_ID({0x30, 0x31, 0x32, 0x33});
 
 	return Gyro();
 }
 
-Accel InputBuffer::get_Acc() {
+const Accel InputBuffer::get_Acc() const {
 
 	this->check_ID({ 0x30, 0x31, 0x32, 0x33 });
 

@@ -121,35 +121,15 @@ void Joycon::capture() {
 	callback_thread = std::thread(&Joycon::callback, this);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 JoyconDeviceInfo Joycon::request_device_info() {
 	InputBuffer buff_in = this->send_command(0x01, 0x02, {}, true);
 
 	JoyconDeviceInfo info;
-	info.firmwareVersion = std::to_string(buff_in[0]) + "." + std::to_string(buff_in[1]);
-	info.joyconType = buff_in[2];
-	info.mac = buff_in.to_hex_string(4, 6, "", ":");
-	info.useColorsSPI = buff_in[11];
+	const ByteSubVector data = buff_in.get_reply_data();
+	info.firmwareVersion = std::to_string(data[0]) + "." + std::to_string(data[1]);
+	info.joyconType = data[2];
+	info.mac = data.to_hex_string(4, 6, "", ":");
+	info.useColorsSPI = data[11];
 
 	return info;
 }
@@ -170,13 +150,14 @@ TriggerButtonElapsedTime Joycon::trigger_button_elapsed_time() {
 	InputBuffer buff_in = this->send_command(0x01, 0x04, {}, true);
 
 	TriggerButtonElapsedTime res;
-	res.L = std::chrono::milliseconds(buff_in.block(0, 2, false));
-	res.R = std::chrono::milliseconds(buff_in.block(2, 2, false));
-	res.ZL = std::chrono::milliseconds(buff_in.block(4, 2, false));
-	res.ZR = std::chrono::milliseconds(buff_in.block(6, 2, false));
-	res.SL = std::chrono::milliseconds(buff_in.block(8, 2, false));
-	res.SR = std::chrono::milliseconds(buff_in.block(10, 2, false));
-	res.HOME = std::chrono::milliseconds(buff_in.block(12, 2, false));
+	const ByteSubVector data = buff_in.get_reply_data();
+	res.L = std::chrono::milliseconds(data.to_int(0, 2, false));
+	res.R = std::chrono::milliseconds(data.to_int(2, 2, false));
+	res.ZL = std::chrono::milliseconds(data.to_int(4, 2, false));
+	res.ZR = std::chrono::milliseconds(data.to_int(6, 2, false));
+	res.SL = std::chrono::milliseconds(data.to_int(8, 2, false));
+	res.SR = std::chrono::milliseconds(data.to_int(10, 2, false));
+	res.HOME = std::chrono::milliseconds(data.to_int(12, 2, false));
 
 	return res;
 }
@@ -199,8 +180,9 @@ void Joycon::set_shipment(bool enable) {
 }
 #endif
 
-void Joycon::SPI_flash_read() {
+const ByteSubVector Joycon::SPI_flash_read() {
 	InputBuffer buff_in = this->send_command(0x01, 0x10, {}, true);
+	return buff_in.get_reply_data();
 }
 
 #ifdef ENABLE_UNTESTED
@@ -222,8 +204,8 @@ void Joycon::set_player_lights(PLAYER_LIGHTS arg) {
 PLAYER_LIGHTS Joycon::get_player_lights() {
 	InputBuffer buff_in = this->send_command(0x01, 0x31, {}, true);
 
-	if ((buff_in.ACK() >> 8) == 0xB031) {
-		PLAYER_LIGHTS res = static_cast<PLAYER_LIGHTS>(buff_in.ACK() & 0xFF);
+	if ((buff_in.get_ACK() == 0xB0) && buff_in.get_subcommandID_reply() == 0x31) {
+		PLAYER_LIGHTS res = static_cast<PLAYER_LIGHTS>(buff_in.get_reply_data(0) & 0xFF);
 		return res;
 	} else {
 		throw std::runtime_error("Did not receive correct answer!");
@@ -254,15 +236,15 @@ void Joycon::write_IMU_registers(unsigned char address, unsigned char value) {
 }
 #endif
 
-Buffer Joycon::read_IMU_registers(unsigned char start_address, unsigned char amount) {
+const ByteSubVector Joycon::read_IMU_registers(unsigned char start_address, unsigned char amount) {
 
 	check_input_arguments({}, start_address, "Invalid start_address");
 	if (amount > 0x20) { throw std::invalid_argument("Max amount is 0x20."); }
 
 	InputBuffer buff_in = this->send_command(0x01, 0x43, { start_address, amount }, true);
 
-	if (buff_in.ACK() == (0xC043 << 16) + (static_cast<int>(start_address) << 8) + static_cast<int>(amount)) {
-		Buffer res = buff_in.data();
+	if ( (buff_in.get_ACK() == 0xC0) && buff_in.get_subcommandID_reply() == 0x43) {
+		const ByteSubVector res = buff_in.get_reply_data();
 		return res;
 	}
 	else {
@@ -278,8 +260,8 @@ void Joycon::enable_vibration(bool enable) {
 POWER Joycon::get_regulated_voltage() {
 	InputBuffer buff_in = this->send_command(0x01, 0x50, {}, true);
 
-	if ((buff_in.ACK() >> 16) == 0xD050) {
-		uint16_t power_level = buff_in.get_reply_data();
+	if ((buff_in.get_ACK() == 0xD0) && (buff_in.get_subcommandID_reply() == 0x51)) {
+		unsigned long int power_level = buff_in.get_reply_data().to_int(0, 2, false);
 		if (power_level <= 0x059F) { return POWER::CRITICAL; }
 		else if (power_level <= 0x05DF) { return POWER::LOW; }
 		else if (power_level <= 0x0617) { return POWER::MEDIUM; }
@@ -298,17 +280,7 @@ void Joycon::check_input_arguments(std::unordered_set<unsigned char> list, unsig
 	}
 }
 
-
-
-
-
-
-
-
-
-
-
-
+/* ------ JOYCONVEC ------ */
 
 int JoyconVec::addDevices() {
 

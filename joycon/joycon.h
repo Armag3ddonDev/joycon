@@ -105,7 +105,7 @@ public:
 	void set_shipment(bool enable);
 #endif
 
-	void SPI_flash_read();
+	const ByteSubVector SPI_flash_read();
 
 #ifdef ENABLE_UNTESTED
 	void SPI_flash_write();
@@ -130,7 +130,7 @@ public:
 	void write_IMU_registers(unsigned char address, unsigned char value);
 #endif
 
-	Buffer read_IMU_registers(unsigned char start_address, unsigned char amount);
+	const ByteSubVector read_IMU_registers(unsigned char start_address, unsigned char amount);
 
 	void enable_vibration(bool enable);
 
