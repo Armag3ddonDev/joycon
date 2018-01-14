@@ -70,7 +70,7 @@ void Joycon::printDeviceInfo() const {
 	//std::wcout << L"	Indexed String 1: " << wstr << std::endl;
 }
 
-InputBuffer Joycon::send_command(unsigned char cmd, unsigned char subcmd, std::vector<unsigned char> data, bool blocking) {
+InputBuffer Joycon::send_command(unsigned char cmd, unsigned char subcmd, const std::vector<unsigned char>& data, bool blocking) {
 
 	if (blocking) { CHECK(hid_set_nonblocking(handle, 0)); }
 

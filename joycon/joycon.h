@@ -70,7 +70,7 @@ public:
 	~Joycon();
 
 	void printDeviceInfo() const;
-	InputBuffer send_command(unsigned char cmd, unsigned char subcmd, std::vector<unsigned char> data, bool blocking = true);
+	InputBuffer send_command(unsigned char cmd, unsigned char subcmd, const std::vector<unsigned char>& data, bool blocking = true);
 	void capture();
 	void callback();
 

@@ -12,18 +12,6 @@ enum POWER{
 	FULL
 };
 
-struct Gyro {
-	double x = 0;
-	double y = 0;
-	double z = 0;
-};
-
-struct Accel {
-	double x = 0;
-	double y = 0;
-	double z = 0;
-};
-
 typedef std::vector<unsigned char>::iterator byte_iterator;
 typedef std::vector<unsigned char>::const_iterator const_byte_iterator;
 
@@ -88,18 +76,16 @@ protected:
 	ByteVector& buf;
 };
 
-// buff_in.get_reply_data().to_int(0, 2);
-
 // ID 21:	... | 13 | 14 | 15 - 49 (SUBCMD_reply)		size 50
 // ID 23 :	... | 13 - 49 (MCU report)					size 50
 // ID 30 :	... | 13 - 48 (Axis/Gyro/Accel)				size 49
 // ID 32 :	... | 13 - 48 (Axis/Gyro/Accel)				size 49
 // ID 33 :	... | 13 - 48 (Axis/Gyro/Accel)				size 49
-// ID 31 :	... | 13 - 48 (Axis/Gyro/Accel) | 49 - 361	size 362	-> COPY
+// ID 31 :	... | 13 - 48 (Axis/Gyro/Accel) | 49 - 361	size 362
+// --> InputBuffer size is eather 50 or 362, depending on if NFC is enabled
 class InputBuffer : public BufferBase {
 public:
 	InputBuffer(bool bEnabledNFC = false);
-	InputBuffer(const InputBuffer& other) : BufferBase(other) {}
 
 	bool enabledNFC() const { return buf.size() == 362; }
 	void clean();
@@ -174,5 +160,5 @@ public:
 	void set_RR(unsigned char a, unsigned char b, unsigned char c, unsigned char d);
 
 	/// set data
-	void set_data(std::vector<unsigned char> data);
+	void set_data(const std::vector<unsigned char>& data);
 };

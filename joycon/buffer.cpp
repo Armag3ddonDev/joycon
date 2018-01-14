@@ -213,7 +213,7 @@ void OutputBuffer::set_RR(unsigned char a, unsigned char b, unsigned char c, uns
 	buf[9] = d;
 }
 
-void OutputBuffer::set_data(std::vector<unsigned char> data) {
+void OutputBuffer::set_data(const std::vector<unsigned char>& data) {
 
 	if (data.size() + 11 != buf.size()) {
 		throw std::out_of_range("Data does not fit in the OutputBuffer.");
