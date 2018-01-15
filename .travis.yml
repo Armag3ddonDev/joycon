@@ -9,7 +9,7 @@ matrix:
 
 git:
   submodules: false
-
+  
 before_install:
   - sudo apt-get update
   - sudo apt-get clean -y
@@ -24,13 +24,18 @@ before_install:
   - sudo update-alternatives --config gcc
   - sudo update-alternatives --config g++
   - sudo apt-get install libhidapi-dev -y #bluetooth api hidapi
-
+  - pip install --user cpp-coveralls
+  
 before_script:
   - mkdir build; cd build
-  - cmake ../joycon/
+  - cmake -DCOVERAGE=1 ../joycon/
 
 script:
   - make
+  - cd tests/OutputBuffer && ./outputbuffer
+  
+after_success:
+  - coveralls --root . -E ".*gtest.*" -E ".*CMakeFiles.*"
 
 notifications:
   webhooks: https://fathomless-fjord-24024.herokuapp.com/notify
