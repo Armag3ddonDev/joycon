@@ -19,11 +19,6 @@ target_link_libraries(${PROJECT_NAME} hidapi-hidraw pthread)
 # for coveralls in travis
 set(COVERAGE OFF CACHE BOOL "Coverage")
 
-if (COVERAGE)
-    target_compile_options(tests PRIVATE --coverage)
-    target_link_libraries(tests PRIVATE --coverage)
-endif()
-
 # enable tests per default
 option(BUILD_TESTS "Build automatic tests" ON)
 
