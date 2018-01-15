@@ -12,6 +12,8 @@ TEST(OutputBuffer, TestOutputBuffer) {
 
 	//default size should be 65
 	EXPECT_EQ(buf_out.size(), 65);
+	
+	OutputBuffer buf_out = OutputBuffer();
 }
 
 }
