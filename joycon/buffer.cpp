@@ -1,6 +1,7 @@
 #include <iostream>
 #include <sstream>
 #include <algorithm>
+#include <limits>
 
 #include "buffer.h"
 
@@ -40,7 +41,7 @@ unsigned long int ByteBase<T>::to_int(const_byte_iterator it_begin, std::size_t 
 
 template <typename T>
 std::string ByteBase<T>::to_hex_string(std::string prefix, std::string delimiter) const {
-	return to_hex_string(this->begin(), this->end(), prefix, delimiter);
+	return this->to_hex_string(this->begin(), this->end(), prefix, delimiter);
 }
 
 template <typename T>
@@ -80,7 +81,10 @@ std::string ByteBase<T>::to_hex_string(const_byte_iterator it_begin, const_byte_
 
 template <typename T>
 void ByteBase<T>::print(unsigned int size) const {
-	if (size > this->size()) {
+
+	if(size == 0) {
+		size = this->size();
+	} else if (size > this->size()) {
 		throw std::out_of_range("Size is too big!");
 	}
 	std::cout << this->to_hex_string(this->begin(), this->begin() + size, "", " ");
@@ -88,8 +92,7 @@ void ByteBase<T>::print(unsigned int size) const {
 
 template <typename T>
 void ByteBase<T>::print(const_byte_iterator it_begin, const_byte_iterator it_end) const {
-
-	std::cout << to_hex_string(it_begin, it_end, "", " ") << std::endl;
+	std::cout << this->to_hex_string(it_begin, it_end, "", " ") << std::endl;
 }
 
 template <typename T>
@@ -224,7 +227,7 @@ void InputBuffer::check_ID(std::unordered_set<unsigned char> valid_list) const {
 
 /* ---- OUTPUT BUFFER --- */
 
-OutputBuffer::OutputBuffer(std::size_t dataSize) : BufferBase(11 + dataSize) {
+OutputBuffer::OutputBuffer(std::size_t dataSize) : BufferBase((11 + dataSize < 11)? throw std::bad_alloc() : 11+dataSize) {
 
 	this->set_RL(0x00, 0x01, 0x40, 0x40);
 	this->set_RR(0x00, 0x01, 0x40, 0x40);
@@ -276,7 +279,7 @@ void OutputBuffer::set_RR(unsigned char a, unsigned char b, unsigned char c, uns
 void OutputBuffer::set_data(const ByteVector& data) {
 
 	if (data.size() + 11 != buf.size()) {
-		throw std::length_error("Size msimatch. Data does not fit in the OutputBuffer.");
+		throw std::length_error("Size mismatch. Data does not fit in the OutputBuffer.");
 	}
 
 	std::copy(std::begin(data), std::end(data), std::begin(buf) + 11);
