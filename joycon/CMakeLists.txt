@@ -13,3 +13,20 @@ set(SOURCES
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 target_link_libraries(${PROJECT_NAME} hidapi-hidraw pthread)
+
+# enable tests per default
+option(BUILD_TESTS "Build automatic tests" ON)
+set(BUILD_TESTS ON)
+message("----------------------------------------------meh")
+message("${BUILD_TEST}")
+
+if (BUILD_TEST)
+	message("----------------------------------------------bla")
+	#tests/googletest contains CMakeLists.txt to download and compile googletests
+	add_subdirectory(tests/googletest)
+	enable_testing() #tell cmake we are using a testing framework
+
+	#tests/ includes every testcase that should be build
+	add_subdirectory(tests)
+endif()
+
