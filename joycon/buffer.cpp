@@ -25,7 +25,7 @@ template <typename T>
 unsigned long int ByteBase<T>::to_int(const_byte_iterator it_begin, std::size_t length, bool bigEndian) const {
 
 	if (sizeof(unsigned long int) < length) {
-		throw std::overflow_error("Cant convert to int - length is too big.");
+		throw std::overflow_error("Can not convert to unsigned long int - length is too big.");
 	}
 
 	unsigned long int res{ 0 };
@@ -50,13 +50,13 @@ std::string ByteBase<T>::to_hex_string(std::size_t start, std::size_t length, st
 		throw std::out_of_range("Length is too big!");
 	}
 
-	return this->to_hex_string(this->begin() + start, this->begin() + start + length - 1, prefix, delimiter);
+	return this->to_hex_string(this->begin() + start, this->begin() + start + length, prefix, delimiter);
 }
 
 template <typename T>
 std::string ByteBase<T>::to_hex_string(const_byte_iterator it_begin, const_byte_iterator it_end, std::string prefix, std::string delimiter) const {
 
-	std::stringstream sstream;
+	std::ostringstream sstream;
 	if (it_begin != it_end) {
 		sstream << prefix;
 	}
@@ -130,14 +130,14 @@ const unsigned char& InputBuffer::get_timer() const {
 
 POWER InputBuffer::get_battery_level() const {
 
-	unsigned char battery_level = buf[2] & 0xF;
+	unsigned char battery_level = buf[2] >> 4;
 	if (battery_level == 0) {
 		return POWER::EMPTY;
-	} else if (battery_level < 2) {
+	} else if (battery_level <= 2) {
 		return POWER::CRITICAL;
-	} else if (battery_level < 4) {
+	} else if (battery_level <= 4) {
 		return POWER::LOW;
-	} else if (battery_level < 6) {
+	} else if (battery_level <= 6) {
 		return POWER::MEDIUM;
 	} else {
 		return POWER::FULL;
@@ -145,23 +145,28 @@ POWER InputBuffer::get_battery_level() const {
 }
 
 const unsigned char& InputBuffer::get_ACK() const {
+	this->check_ID(0x21);
 	return buf[13];
 }
 
 const unsigned char& InputBuffer::get_subcommandID_reply() const {
+	this->check_ID(0x21);
 	return buf[14];
 }
 
 ByteVector InputBuffer::get_reply_data(std::size_t offset, std::size_t length) const {
+
 	this->check_ID(0x21);
 
 	if (length == 0) {
 		length = 35;
-	} else if (length > 35) {
+	}
+
+	if (offset + length > 35) {
 		throw std::out_of_range("Length is too big!");
 	}
 
-	return ByteVector(buf.begin() + 15 + offset, buf.begin() + 15 + length);
+	return ByteVector(buf.begin() + 15 + offset, buf.begin() + 15 + offset + length);
 }
 
 const unsigned char&  InputBuffer::get_reply_data_at(std::size_t idx) const {
@@ -180,12 +185,10 @@ ByteVector InputBuffer::get_MCU_FW_update_report() const {
 }
 
 ByteVector InputBuffer::get_AxisData() const {
-
 	this->check_ID({0x30, 0x31, 0x32, 0x33});
 	return ByteVector(buf.begin() + 13, buf.begin() + 13 + 36);
 }
 
-// ID 31
 ByteVector InputBuffer::get_NFC_IR_input_report() const {
 	this->check_ID(0x31);
 	if (!this->enabledNFC()) {
@@ -197,7 +200,7 @@ ByteVector InputBuffer::get_NFC_IR_input_report() const {
 void InputBuffer::check_ID(unsigned char valid) const {
 	const unsigned char& ID = this->get_ID();
 	if (ID != valid) {
-		std::stringstream error;
+		std::ostringstream error;
 		error << "Wrong mode! ID should be " << std::hex << static_cast<unsigned int>(valid) 
 			<< ", but ID is " << std::hex << static_cast<unsigned int>(ID) << std::endl;
 		throw std::runtime_error(error.str());
@@ -207,14 +210,14 @@ void InputBuffer::check_ID(unsigned char valid) const {
 void InputBuffer::check_ID(std::unordered_set<unsigned char> valid_list) const {
 	const unsigned char& ID = this->get_ID();
 	if (valid_list.find(ID) == valid_list.end()) {
-		std::stringstream error;
+		std::ostringstream error;
 		error << "Wrong mode! ID should be in {";
 		std::string del = "";
 		for (auto valid : valid_list) {
 			error << del << std::hex << static_cast<unsigned int>(valid);
 			del = ", ";
 		}
-			error << "}, but ID is " << std::hex << static_cast<unsigned int>(ID) << std::endl;
+		error << "}, but ID is " << std::hex << static_cast<unsigned int>(ID) << std::endl;
 		throw std::runtime_error(error.str());
 	}
 }
@@ -240,6 +243,23 @@ void OutputBuffer::set_subcmd(unsigned char in) {
 }
 
 void OutputBuffer::set_RL(unsigned char a, unsigned char b, unsigned char c, unsigned char d) {
+
+	/*
+	// Float frequency to hex conversion
+	if (freq < 0.0) {
+		freq = 320.0;
+	} else if (freq > 1252.0) {
+		freq = 1252.0;
+	}
+	// encoded_hex_freq: -inf to 0xDF
+	uint8_t encoded_hex_freq = (uint8_t)round(log2((double)freq / 10.0)*32.0);
+
+	// Convert to Joy-Con HF range. Range in big-endian: 0x0004-0x01FC with +0x0004 steps.
+	uint16_t hf = (encoded_hex_freq - 0x60) * 4;
+	// Convert to Joy-Con LF range. Range: 0x01-0x7F.
+	uint8_t lf = encoded_hex_freq - 0x40;
+	*/
+
 	buf[2] = a;
 	buf[3] = b;
 	buf[4] = c;
@@ -256,7 +276,7 @@ void OutputBuffer::set_RR(unsigned char a, unsigned char b, unsigned char c, uns
 void OutputBuffer::set_data(const ByteVector& data) {
 
 	if (data.size() + 11 != buf.size()) {
-		throw std::runtime_error("Size msimatch. Data does not fit in the OutputBuffer.");
+		throw std::length_error("Size msimatch. Data does not fit in the OutputBuffer.");
 	}
 
 	std::copy(std::begin(data), std::end(data), std::begin(buf) + 11);

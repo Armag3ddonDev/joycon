@@ -192,8 +192,6 @@ void Joycon::set_shipment(bool enable) {
 
 ByteVector Joycon::SPI_flash_read(ByteVector address, unsigned char length) {
 
-	// TODO: check if address is in valid range!
-
 	if (address.size() != 4) {
 		throw std::runtime_error("Dimension mismatch!");
 	}
@@ -224,8 +222,6 @@ ByteVector Joycon::SPI_flash_read(ByteVector address, unsigned char length) {
 
 #ifdef ENABLE_UNTESTED
 void Joycon::SPI_flash_write(ByteVector address, ByteVector data) {
-
-	// TODO: check if address is in valid range!
 
 	if (address.size() != 4) {
 		throw std::runtime_error("Dimension mismatch!");
@@ -265,8 +261,6 @@ void Joycon::SPI_flash_write(ByteVector address, ByteVector data) {
 
 #ifdef ENABLE_UNTESTED
 void Joycon::SPI_sector_erase(ByteVector address) {
-
-	// TODO: check if address is in valid range!
 
 	if (address.size() != 4) {
 		throw std::runtime_error("Dimension mismatch!");
