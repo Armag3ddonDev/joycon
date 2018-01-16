@@ -164,12 +164,25 @@ public:
 	/// set subcommand byte
 	void set_subcmd(unsigned char in);	
 
-	/// set left rumble data
-	void set_RL(unsigned char a, unsigned char b, unsigned char c, unsigned char d);
+	enum JOYCON {
+		LEFT = 0b01,
+		RIGHT = 0b10,
+		BOTH = 0b11
+	};
 
-	/// set right rumble data
-	void set_RR(unsigned char a, unsigned char b, unsigned char c, unsigned char d);
+	/// set left rumble data
+	void set_rumble(JOYCON type, unsigned char a, unsigned char b, unsigned char c, unsigned char d);
+
+	/// set rumble of JOYCON type from frequency and amplitude
+	void set_rumble(JOYCON type, double frequency, double amplitude);
 
 	/// set data
 	void set_data(const ByteVector& data);
+
+private:
+	void encode_frequency(double frequency, uint16_t& hf, uint8_t& lf) const;
+	void encode_amplitude(double amplitude, uint8_t& hf_amp, uint16_t& lf_amp) const;
+
+	double decode_frequency() const;
+	double decode_amplitude() const;
 };

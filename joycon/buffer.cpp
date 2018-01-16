@@ -229,8 +229,8 @@ void InputBuffer::check_ID(std::unordered_set<unsigned char> valid_list) const {
 
 OutputBuffer::OutputBuffer(std::size_t dataSize) : BufferBase((11 + dataSize < 11)? throw std::bad_alloc() : 11+dataSize) {
 
-	this->set_RL(0x00, 0x01, 0x40, 0x40);
-	this->set_RR(0x00, 0x01, 0x40, 0x40);
+	this->set_rumble(JOYCON::LEFT , 0x00, 0x01, 0x40, 0x40);
+	this->set_rumble(JOYCON::RIGHT, 0x00, 0x01, 0x40, 0x40);
 }
 
 void OutputBuffer::set_cmd(unsigned char in) {
@@ -245,35 +245,48 @@ void OutputBuffer::set_subcmd(unsigned char in) {
 	buf[10] = in;
 }
 
-void OutputBuffer::set_RL(unsigned char a, unsigned char b, unsigned char c, unsigned char d) {
-
-	/*
-	// Float frequency to hex conversion
-	if (freq < 0.0) {
-		freq = 320.0;
-	} else if (freq > 1252.0) {
-		freq = 1252.0;
+void OutputBuffer::set_rumble(JOYCON type, unsigned char a, unsigned char b, unsigned char c, unsigned char d) {
+	
+	bool offset = false;
+	if (type == JOYCON::LEFT) {
+		offset = false;
+	} else if (type == JOYCON::RIGHT) {
+		offset = true;
+	} else {
+		throw std::invalid_argument("Invalid JOYCON type.");
 	}
-	// encoded_hex_freq: -inf to 0xDF
-	uint8_t encoded_hex_freq = (uint8_t)round(log2((double)freq / 10.0)*32.0);
 
-	// Convert to Joy-Con HF range. Range in big-endian: 0x0004-0x01FC with +0x0004 steps.
-	uint16_t hf = (encoded_hex_freq - 0x60) * 4;
-	// Convert to Joy-Con LF range. Range: 0x01-0x7F.
-	uint8_t lf = encoded_hex_freq - 0x40;
-	*/
-
-	buf[2] = a;
-	buf[3] = b;
-	buf[4] = c;
-	buf[5] = d;
+	buf[2 + offset*4] = a;	// L(2), R(6)
+	buf[3 + offset*4] = b;	// L(3), R(7)
+	buf[4 + offset*4] = c;	// L(4), R(8)
+	buf[5 + offset*4] = d;	// L(5), R(9)
 }
 
-void OutputBuffer::set_RR(unsigned char a, unsigned char b, unsigned char c, unsigned char d) {
-	buf[6] = a;
-	buf[7] = b;
-	buf[8] = c;
-	buf[9] = d;
+void OutputBuffer::set_rumble(JOYCON type, double frequency, double amplitude) {
+
+	bool offset = false;
+	if (type == JOYCON::LEFT) {
+		offset = false;
+	} else if (type == JOYCON::RIGHT) {
+		offset = true;
+	} else {
+		throw std::invalid_argument("Invalid JOYCON type.");
+	}
+
+	uint16_t hf;
+	uint8_t lf;
+	uint8_t hf_amp;
+	uint16_t lf_amp;
+
+	encode_frequency(frequency, hf, lf);
+	encode_amplitude(amplitude, hf_amp, lf_amp);
+
+	//Byte swapping
+	buf[2 + offset * 4] = hf & 0xFF;
+	buf[3 + offset * 4] = hf_amp + ((hf >> 8) & 0xFF); //Add amp + 1st byte of frequency to amplitude byte
+	//Byte swapping
+	buf[4 + offset * 4] = lf + ((lf_amp >> 8) & 0xFF); //Add freq + 1st byte of LF amplitude to the frequency byte
+	buf[5 + offset * 4] = lf_amp & 0xFF;
 }
 
 void OutputBuffer::set_data(const ByteVector& data) {
@@ -283,4 +296,54 @@ void OutputBuffer::set_data(const ByteVector& data) {
 	}
 
 	std::copy(std::begin(data), std::end(data), std::begin(buf) + 11);
+}
+
+
+void OutputBuffer::encode_frequency(double frequency, uint16_t& hf, uint8_t& lf) const {
+
+	// Float frequency to hex conversion
+	if (frequency < 40.87) {
+		frequency = 40.87;
+	}
+	else if (frequency > 1252.57) {
+		frequency = 1252.57;
+	}
+
+	// maps to 0x41(65) - 0xDF(223)
+	uint8_t encoded_hex_freq = static_cast<uint8_t>(round(log2(frequency / 10.0)*32.0));
+
+	// Convert to Joy-Con HF range. Range in big-endian: 0x0004(81.75Hz)-0x01FC(1252.57Hz) with +0x0004 steps.
+	hf = (encoded_hex_freq - 0x60) * 4;	// what happens under 81.75Hz?
+										// Convert to Joy-Con LF range. Range: 0x01-0x7F.
+	lf = encoded_hex_freq - 0x40;
+}
+
+void OutputBuffer::encode_amplitude(double amplitude, uint8_t& hf_amp, uint16_t& lf_amp) const {
+
+	// clamp amplitude
+	if ((amplitude < 0) || (amplitude > 1.002867)) {	// dont increase for safety-reasons of the linear resonant actuators.
+		throw std::invalid_argument("amplitude must be between 0 and 1.002867");
+	}
+
+	// maps to 0x00(0) - 0xC8(100)
+	uint8_t amp_encoded;
+	if (amplitude < 0.008) {
+		amp_encoded = 0x00;
+	} else if (amplitude < 0.112491) {
+		amp_encoded = static_cast<uint8_t>(round((log2(amplitude * 5.0 / 18.0) + 9.0)*4.0)) - 1;
+	}
+	else if (amplitude < 0.224982) {
+		amp_encoded = static_cast<uint8_t>(round((log2(amplitude * 5.0 / 18.0) + 6.0)*16.0)) - 1;
+	}
+	else {
+		amp_encoded = static_cast<uint8_t>(round((log2(amplitude * 5.0 / 18.0) + 5.0)*32.0)) - 1;
+	}
+
+	// saveguard
+	if (amp_encoded > 0xC8) { 
+		throw std::bad_exception(); 
+	}
+
+	hf_amp = amp_encoded << 1;	// multiply by 2
+	lf_amp = 0x8000 * (amp_encoded & 0x01) + 0x40 + (amp_encoded >> 1);	// 0x80XX if odd, else 0x00XX
 }
