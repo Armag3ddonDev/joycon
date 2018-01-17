@@ -4,6 +4,8 @@
 #include <string>
 #include <unordered_set>
 
+#include "rumble.h"
+
 enum POWER{
 	EMPTY,
 	CRITICAL,
@@ -179,10 +181,4 @@ public:
 	/// set data
 	void set_data(const ByteVector& data);
 
-private:
-	void encode_frequency(double frequency, uint16_t& hf, uint8_t& lf) const;
-	void encode_amplitude(double amplitude, uint8_t& hf_amp, uint16_t& lf_amp) const;
-
-	double decode_frequency(uint16_t hf, uint8_t lf) const;
-	double decode_amplitude(uint8_t hf_amp, uint16_t lf_amp) const;
 };
