@@ -2,10 +2,13 @@
 
 #include "buffer.h"
 
-
 class Rumble
 {
 public:
+
+	Rumble() : frequency(0.0), amplitude(0.0), data({0x00, 0x01, 0x40, 0x40}) {
+	}
+
 	Rumble(double freqeuncy, double amplitude) : frequency(frequency), amplitude(amplitude), data() {
 		pack();
 	}
@@ -14,9 +17,9 @@ public:
 		unpack();
 	}
 
-	const float& getFreqeuncy() { return frequency; }
-	const float& getAmplitude() { return amplitude; }
-	const unsigned char& byte_at(std::size_t idx) { return data.at(idx); }
+	const double& getFreqeuncy() const { return frequency; }
+	const double& getAmplitude() const { return amplitude; }
+	const unsigned char& byte_at(std::size_t idx) const { return data.at(idx); }
 
 private:
 

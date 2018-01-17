@@ -8,12 +8,12 @@
 /* ------ BYTE BASE ----- */
 
 template <typename T>
-unsigned long int ByteBase<T>::to_int(bool bigEndian) const { 
+unsigned long int ByteContainer<T>::to_int(bool bigEndian) const {
 	return to_int(this->begin(), this->size(), bigEndian);
 }
 
 template <typename T>
-unsigned long int ByteBase<T>::to_int(std::size_t start, std::size_t length, bool bigEndian) const {
+unsigned long int ByteContainer<T>::to_int(std::size_t start, std::size_t length, bool bigEndian) const {
 
 	if (length + start > this->size()) {
 		throw std::out_of_range("Length is too big!");
@@ -23,7 +23,7 @@ unsigned long int ByteBase<T>::to_int(std::size_t start, std::size_t length, boo
 }
 
 template <typename T>
-unsigned long int ByteBase<T>::to_int(const_byte_iterator it_begin, std::size_t length, bool bigEndian) const {
+unsigned long int ByteContainer<T>::to_int(const_iterator it_begin, std::size_t length, bool bigEndian) const {
 
 	if (sizeof(unsigned long int) < length) {
 		throw std::overflow_error("Can not convert to unsigned long int - length is too big.");
@@ -40,12 +40,12 @@ unsigned long int ByteBase<T>::to_int(const_byte_iterator it_begin, std::size_t 
 }
 
 template <typename T>
-std::string ByteBase<T>::to_hex_string(std::string prefix, std::string delimiter) const {
+std::string ByteContainer<T>::to_hex_string(std::string prefix, std::string delimiter) const {
 	return this->to_hex_string(this->begin(), this->end(), prefix, delimiter);
 }
 
 template <typename T>
-std::string ByteBase<T>::to_hex_string(std::size_t start, std::size_t length, std::string prefix, std::string delimiter) const {
+std::string ByteContainer<T>::to_hex_string(std::size_t start, std::size_t length, std::string prefix, std::string delimiter) const {
 
 	if (length + start > this->size()) {
 		throw std::out_of_range("Length is too big!");
@@ -55,7 +55,7 @@ std::string ByteBase<T>::to_hex_string(std::size_t start, std::size_t length, st
 }
 
 template <typename T>
-std::string ByteBase<T>::to_hex_string(const_byte_iterator it_begin, const_byte_iterator it_end, std::string prefix, std::string delimiter) const {
+std::string ByteContainer<T>::to_hex_string(const_iterator it_begin, const_iterator it_end, std::string prefix, std::string delimiter) const {
 
 	std::ostringstream sstream;
 	if (it_begin != it_end) {
@@ -66,7 +66,7 @@ std::string ByteBase<T>::to_hex_string(const_byte_iterator it_begin, const_byte_
 
 	for (const_byte_iterator it = it_begin; it != it_end; ++it) {
 
-		const unsigned char& current_byte = *it;
+		const byte& current_byte = *it;
 
 		std::string fill = "";
 		if (current_byte <= 0x0F) { fill = "0"; }
@@ -80,7 +80,7 @@ std::string ByteBase<T>::to_hex_string(const_byte_iterator it_begin, const_byte_
 }
 
 template <typename T>
-void ByteBase<T>::print(unsigned int size) const {
+void ByteContainer<T>::print(unsigned int size) const {
 
 	if(size == 0) {
 		size = this->size();
@@ -91,31 +91,9 @@ void ByteBase<T>::print(unsigned int size) const {
 }
 
 template <typename T>
-void ByteBase<T>::print(const_byte_iterator it_begin, const_byte_iterator it_end) const {
+void ByteContainer<T>::print(const_iterator it_begin, const_iterator it_end) const {
 	std::cout << this->to_hex_string(it_begin, it_end, "", " ") << std::endl;
 }
-
-template <typename T>
-void ByteBase<T>::swap() {
-	byte_iterator first = this->begin();
-	byte_iterator last = this->end();
-	while ((first != last) && (first != --last)) {
-		std::iter_swap(first, last);
-		++first;
-	}
-}
-
-template <typename T>
-T ByteBase<T>::swapped() const {
-	T res(this->begin(), this->end());
-	std::size_t n = this->size();
-	for (std::size_t i = 0; i < n; ++i) {
-		res[i] = *(this->begin() + i);
-	}
-	return res;
-}
-
-template class ByteBase<ByteVector>;
 
 /* ---- INPUT BUFFER ---- */
 
@@ -123,17 +101,17 @@ void InputBuffer::clean() {
 	std::fill(buf.begin(), buf.end(), 0);
 }
 
-const unsigned char& InputBuffer::get_ID() const {
+const byte& InputBuffer::get_ID() const {
 	return buf[0];
 }
 
-const unsigned char& InputBuffer::get_timer() const {
+const byte& InputBuffer::get_timer() const {
 	return buf[1];
 }
 
 POWER InputBuffer::get_battery_level() const {
 
-	unsigned char battery_level = buf[2] >> 4;
+	byte battery_level = buf[2] >> 4;
 	if (battery_level == 0) {
 		return POWER::EMPTY;
 	} else if (battery_level <= 2) {
@@ -147,12 +125,12 @@ POWER InputBuffer::get_battery_level() const {
 	}
 }
 
-const unsigned char& InputBuffer::get_ACK() const {
+const byte& InputBuffer::get_ACK() const {
 	this->check_ID(0x21);
 	return buf[13];
 }
 
-const unsigned char& InputBuffer::get_subcommandID_reply() const {
+const byte& InputBuffer::get_subcommandID_reply() const {
 	this->check_ID(0x21);
 	return buf[14];
 }
@@ -172,7 +150,7 @@ ByteVector InputBuffer::get_reply_data(std::size_t offset, std::size_t length) c
 	return ByteVector(buf.begin() + 15 + offset, buf.begin() + 15 + offset + length);
 }
 
-const unsigned char&  InputBuffer::get_reply_data_at(std::size_t idx) const {
+const byte&  InputBuffer::get_reply_data_at(std::size_t idx) const {
 
 	this->check_ID(0x21);
 
@@ -200,8 +178,8 @@ ByteVector InputBuffer::get_NFC_IR_input_report() const {
 	return ByteVector(buf.begin() + 49, buf.begin() + 49 + 313);
 }
 
-void InputBuffer::check_ID(unsigned char valid) const {
-	const unsigned char& ID = this->get_ID();
+void InputBuffer::check_ID(byte valid) const {
+	const byte& ID = this->get_ID();
 	if (ID != valid) {
 		std::ostringstream error;
 		error << "Wrong mode! ID should be " << std::hex << static_cast<unsigned int>(valid) 
@@ -210,8 +188,8 @@ void InputBuffer::check_ID(unsigned char valid) const {
 	}
 }
 
-void InputBuffer::check_ID(std::unordered_set<unsigned char> valid_list) const {
-	const unsigned char& ID = this->get_ID();
+void InputBuffer::check_ID(std::unordered_set<byte> valid_list) const {
+	const byte& ID = this->get_ID();
 	if (valid_list.find(ID) == valid_list.end()) {
 		std::ostringstream error;
 		error << "Wrong mode! ID should be in {";
@@ -229,64 +207,34 @@ void InputBuffer::check_ID(std::unordered_set<unsigned char> valid_list) const {
 
 OutputBuffer::OutputBuffer(std::size_t dataSize) : BufferBase((11 + dataSize < 11)? throw std::bad_alloc() : 11+dataSize) {
 
-	this->set_rumble(JOYCON::LEFT , 0x00, 0x01, 0x40, 0x40);
-	this->set_rumble(JOYCON::RIGHT, 0x00, 0x01, 0x40, 0x40);
+	this->set_rumble_left(Rumble());
+	this->set_rumble_right(Rumble());
 }
 
-void OutputBuffer::set_cmd(unsigned char in) {
+void OutputBuffer::set_cmd(byte in) {
 	buf[0] = in;
 }
 
-void OutputBuffer::set_GP(unsigned char in) {
+void OutputBuffer::set_GP(byte in) {
 	buf[1] = in;
 }
 
-void OutputBuffer::set_subcmd(unsigned char in) {
+void OutputBuffer::set_subcmd(byte in) {
 	buf[10] = in;
 }
 
-void OutputBuffer::set_rumble(JOYCON type, unsigned char a, unsigned char b, unsigned char c, unsigned char d) {
-	
-	bool offset = false;
-	if (type == JOYCON::LEFT) {
-		offset = false;
-	} else if (type == JOYCON::RIGHT) {
-		offset = true;
-	} else {
-		throw std::invalid_argument("Invalid JOYCON type.");
-	}
-
-	buf[2 + offset*4] = a;	// L(2), R(6)
-	buf[3 + offset*4] = b;	// L(3), R(7)
-	buf[4 + offset*4] = c;	// L(4), R(8)
-	buf[5 + offset*4] = d;	// L(5), R(9)
+void OutputBuffer::set_rumble_left(const Rumble& rumble) {
+	buf[2] = rumble.byte_at(0);
+	buf[3] = rumble.byte_at(1);
+	buf[4] = rumble.byte_at(2);
+	buf[5] = rumble.byte_at(3);
 }
 
-void OutputBuffer::set_rumble(JOYCON type, double frequency, double amplitude) {
-
-	bool offset = false;
-	if (type == JOYCON::LEFT) {
-		offset = false;
-	} else if (type == JOYCON::RIGHT) {
-		offset = true;
-	} else {
-		throw std::invalid_argument("Invalid JOYCON type.");
-	}
-
-	uint16_t hf;
-	uint8_t lf;
-	uint8_t hf_amp;
-	uint16_t lf_amp;
-
-	encode_frequency(frequency, hf, lf);
-	encode_amplitude(amplitude, hf_amp, lf_amp);
-
-	//Byte swapping
-	buf[2 + offset * 4] = hf & 0xFF;
-	buf[3 + offset * 4] = hf_amp + ((hf >> 8) & 0xFF); //Add amp + 1st byte of frequency to amplitude byte
-	//Byte swapping
-	buf[4 + offset * 4] = lf + ((lf_amp >> 8) & 0xFF); //Add freq + 1st byte of LF amplitude to the frequency byte
-	buf[5 + offset * 4] = lf_amp & 0xFF;
+void OutputBuffer::set_rumble_right(const Rumble& rumble) {
+	buf[6] = rumble.byte_at(0);
+	buf[7] = rumble.byte_at(1);
+	buf[8] = rumble.byte_at(2);
+	buf[9] = rumble.byte_at(3);
 }
 
 void OutputBuffer::set_data(const ByteVector& data) {

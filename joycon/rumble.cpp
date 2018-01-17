@@ -3,7 +3,7 @@
 #include "buffer.h"
 #include "rumble.h"
 
-
+/*
 void Rumble::pack() {
 
 	bool offset = false;
@@ -32,6 +32,7 @@ void Rumble::pack() {
 	buf[4 + offset * 4] = lf + ((lf_amp >> 8) & 0xFF); //Add freq + 1st byte of LF amplitude to the frequency byte
 	buf[5 + offset * 4] = lf_amp & 0xFF;
 }
+*/
 
 void Rumble::unpack() {
 

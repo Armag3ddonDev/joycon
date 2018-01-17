@@ -10,7 +10,8 @@ set(CMAKE_CXX_STANDARD 14)
 set(SOURCES
     main.cpp
     buffer.cpp
-    joycon.cpp)
+    joycon.cpp
+	rumble.cpp)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
