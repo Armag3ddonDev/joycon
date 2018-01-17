@@ -1,6 +1,6 @@
-#include "buffer.h"
-
 #pragma once
+
+#include "buffer.h"
 
 
 class Rumble
