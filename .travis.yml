@@ -33,7 +33,8 @@ before_script:
 
 script:
   - make
-  - ../get_code_cov
+  - cd ..
+  - ./get_code_cov
   - codecov
   
 after_success:
