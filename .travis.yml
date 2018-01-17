@@ -25,7 +25,7 @@ before_install:
   - sudo update-alternatives --config g++
   - sudo apt-get install libhidapi-dev -y #bluetooth api hidapi
   - sudo pip install codecov
-  - sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-5 90
+  #- sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-5 90
   
 before_script:
   - mkdir build; cd build
