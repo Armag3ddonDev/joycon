@@ -165,7 +165,7 @@ ByteVector InputBuffer::get_reply_data(std::size_t offset, std::size_t length) c
 		length = 35;
 	}
 
-	if (offset + length > 35) {
+	if (offset + length > 35 || offset > 35 || length > 35) {
 		throw std::out_of_range("Length is too big!");
 	}
 

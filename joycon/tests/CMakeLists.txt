@@ -1,1 +1,2 @@
 add_subdirectory(OutputBuffer)
+add_subdirectory(InputBuffer)
