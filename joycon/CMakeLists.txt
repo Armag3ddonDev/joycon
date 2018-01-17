@@ -5,8 +5,6 @@ project(joycon)
 set(CMAKE_CXX_STANDARD_REQUIRED 14)
 set(CMAKE_CXX_STANDARD 14)
 
-
-
 set(SOURCES
     main.cpp
     buffer.cpp
@@ -15,9 +13,6 @@ set(SOURCES
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 target_link_libraries(${PROJECT_NAME} hidapi-hidraw pthread)
-
-# for coveralls in travis
-set(COVERAGE OFF CACHE BOOL "Coverage")
 
 # enable tests per default
 option(BUILD_TESTS "Build automatic tests" ON)
