@@ -351,7 +351,7 @@ void OutputBuffer::encode_amplitude(double amplitude, uint8_t& hf_amp, uint16_t&
 double OutputBuffer::decode_frequency(uint16_t hf, uint8_t lf) const {
 
 	uint8_t encoded_hex_freq = lf + 0x40;
-	if (encoded_hex_freq != (hf >> 2 + 0x60)) {
+	if (encoded_hex_freq != ((hf >> 2) + 0x60)) {
 		throw std::runtime_error("lf (" + std::to_string(lf) + ") and hf (" + std::to_string(hf) + ") produce different frequencies!");;
 	}
 
