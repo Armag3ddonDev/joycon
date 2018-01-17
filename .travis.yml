@@ -24,7 +24,8 @@ before_install:
   - sudo update-alternatives --config gcc
   - sudo update-alternatives --config g++
   - sudo apt-get install libhidapi-dev -y #bluetooth api hidapi
-  - pip install --user cpp-coveralls
+  - sudo pip install codecov
+  - sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-5 90
   
 before_script:
   - mkdir build; cd build
@@ -32,10 +33,11 @@ before_script:
 
 script:
   - make
-  - cd tests/OutputBuffer && ./outputbuffer
+  - ../get_code_cov
+  - codecov
   
 after_success:
-  - coveralls --root . -E ".*gtest.*" -E ".*CMakeFiles.*"
+  - bash <(curl -s https://codecov.io/bash);
 
 notifications:
   webhooks: https://fathomless-fjord-24024.herokuapp.com/notify
