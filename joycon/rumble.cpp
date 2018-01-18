@@ -39,7 +39,7 @@ void Rumble::encode_frequency(double frequency, byte& hf, byte& lf) const {
 	// maps to 0x41(65) - 0xDF(223)
 	byte encoded_hex_freq = static_cast<byte>(std::round(std::log2(frequency / 10.0)*32.0));
 
-	// Convert to Joy-Con HF range. Range: 0x01. - 0x7F
+	// Convert to Joy-Con HF range. Range: 0x01-0x7F
 	hf = (encoded_hex_freq > 0x60) ? (encoded_hex_freq - 0x60) : 0x00;	// what happens under 81.75Hz?
 
 	// Convert to Joy-Con LF range. Range: 0x01-0x7F.
@@ -79,15 +79,25 @@ void Rumble::encode_amplitude(double amplitude, byte& hf_amp, byte& lf_amp) cons
 
 double Rumble::decode_frequency(byte hf, byte lf) const {
 
-	uint8_t encoded_hex_freq = lf + 0x40;
-	if (encoded_hex_freq != hf + 0x60) {
-		throw std::runtime_error("lf (" + std::to_string(lf) + ") and hf (" + std::to_string(hf) + ") produce different frequencies!");;
-	} else if (encoded_hex_freq > 0xDF){
-		throw std::runtime_error("frequency must be between 0x00 and 0xDF.");
+	if (lf > 0x7F || hf > 0x7F) {
+		throw std::invalid_argument("hf and lf must be less than 0x7F.");
+	}
+
+	byte encoded_hex_freq;
+
+	if (lf != 0) {
+		if (hf != 0 && lf + 0x20 != hf) {
+			throw std::invalid_argument("lf (" + std::to_string(lf) + ") and hf (" + std::to_string(hf) + ") can not be equal!");
+		} else {
+			encoded_hex_freq = lf + 40;
+		}
+	} else if (hf == 0) {
+			throw std::invalid_argument("lf and hf can not be both 0x00.");
+	} else {
+		encoded_hex_freq = hf + 60;
 	}
 
 	double frequency =  10.0*std::pow(2.0, static_cast<float>(encoded_hex_freq) / 32.0);
-
 	return std::min(40.87, std::min(1252.57, frequency));
 }
 
