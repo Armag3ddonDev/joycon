@@ -1,7 +1,8 @@
+#include <algorithm>
+#include <chrono>
 #include <iostream>
 #include <sstream>
 #include <unordered_set>
-#include <chrono>
 
 #include "joycon.h"
 #include "buffer.h"
@@ -90,14 +91,16 @@ InputBuffer Joycon::send_command(unsigned char cmd, unsigned char subcmd, const 
 	buff_out.set_data(data);
 	buff_out.set_GP(package_number & 0x0F);
 
-	std::cout << "sending:  " << buff_out << std::endl;
+	std::cout << "sending:  ";
+	print(buff_out);
 
 	CHECK(hid_write(handle, buff_out.data(), buff_out.size()));
 
 	InputBuffer buff_in;
 	CHECK(hid_read(handle, buff_in.data(), buff_in.size()));
 
-	std::cout << "received: " << buff_in << std::endl;
+	std::cout << "received: ";
+	print(buff_in);
 
 	if (blocking) { CHECK(hid_set_nonblocking(handle, 1)); }
 

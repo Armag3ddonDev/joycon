@@ -5,6 +5,7 @@
 #include <sstream>
 #include <string>
 #include <chrono>
+#include <iostream>
 #include <stdexcept>
 #include <type_traits>
 
@@ -128,24 +129,24 @@ to_hex_string(const T& container, std::size_t start, std::size_t length, std::st
 }
 
 template <typename T>
-typename std::enable_if<std::is_same<typename T::value_type, byte>::value, void>::type
-print(const T& container, unsigned int size = 0) {
-
-	if (size == 0) {
-		size = container.size();
-	} else if (size > container.size()) {
-		throw std::out_of_range("Size is too big!");
-	}
-	std::cout << to_hex_string(container.begin(), container.begin() + size, "", " ") << std::endl;
-}
-
-template <typename T>
 typename std::enable_if<std::is_same<typename T::value_type, byte>::value, std::ostream& >::type
 operator<<(std::ostream& os, const T& container) {
 	os << to_hex_string(container.begin(), container.end(), "", " ");
 	return os;
 }
 
+template <typename T>
+typename std::enable_if<std::is_same<typename T::value_type, byte>::value>::type
+print(const T& container, std::size_t size = 0, std::string prefix = "", std::string delimiter = "") {
+
+	if (size == 0) {
+		size = container.size();
+	} else if (size > container.size()) {
+		throw std::out_of_range("Size is larger than container.");
+	}
+
+	std::cout << to_hex_string(container.begin(), container.begin() + size, prefix, delimiter) << std::endl;
+}
 
 /* HELPER TYPES */
 

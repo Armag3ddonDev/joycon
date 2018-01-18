@@ -13,7 +13,6 @@
 
 #include "buffer.h"
 #include "homelight.h"
-#include "types.h"
 
 #define THROW(x) throw(std::runtime_error(std::string(__FILE__) + " - line " + std::to_string(__LINE__) + ": " + __FUNCTION__ + "(): " + x ))
 #define CHECK(x) if (x == -1) {THROW(#x + " failed!");}

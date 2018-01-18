@@ -49,7 +49,7 @@ void Rumble::encode_frequency(double frequency, uint16_t& hf, uint8_t& lf) const
 	}
 
 	// maps to 0x41(65) - 0xDF(223)
-	uint8_t encoded_hex_freq = static_cast<uint8_t>(round(log2(frequency / 10.0)*32.0));
+	uint8_t encoded_hex_freq = static_cast<uint8_t>(std::round(std::log2(frequency / 10.0)*32.0));
 
 	// Convert to Joy-Con HF range. Range in big-endian: 0x0004(81.75Hz)-0x01FC(1252.57Hz) with +0x0004 steps.
 	hf = (encoded_hex_freq - 0x60) * 4;	// what happens under 81.75Hz?
@@ -70,13 +70,13 @@ void Rumble::encode_amplitude(double amplitude, uint8_t& hf_amp, uint16_t& lf_am
 		amp_encoded = 0x00;
 	}
 	else if (amplitude < 0.112491) {
-		amp_encoded = static_cast<uint8_t>(round((log2(amplitude * 5.0 / 18.0) + 9.0)*4.0)) - 1;
+		amp_encoded = static_cast<uint8_t>(std::round((std::log2(amplitude * 5.0 / 18.0) + 9.0)*4.0)) - 1;
 	}
 	else if (amplitude < 0.224982) {
-		amp_encoded = static_cast<uint8_t>(round((log2(amplitude * 5.0 / 18.0) + 6.0)*16.0)) - 1;
+		amp_encoded = static_cast<uint8_t>(std::round((std::log2(amplitude * 5.0 / 18.0) + 6.0)*16.0)) - 1;
 	}
 	else {
-		amp_encoded = static_cast<uint8_t>(round((log2(amplitude * 5.0 / 18.0) + 5.0)*32.0)) - 1;
+		amp_encoded = static_cast<uint8_t>(std::round((std::log2(amplitude * 5.0 / 18.0) + 5.0)*32.0)) - 1;
 	}
 
 	// saveguard
@@ -126,7 +126,7 @@ double Rumble::decode_amplitude(uint8_t hf_amp, uint16_t lf_amp) const {
 		amplitude = 18.0 / 5.0*std::pow(2.0, static_cast<double>(amp_encoded + 1) / 32.0 - 5.0);
 	}
 
-	// amplitude of 0xC8 is 1.002948 because of 'round' during encoding
+	// amplitude of 0xC8 is 1.002948 because of 'std::round' during encoding
 	if ((amplitude < 0.0) || (amplitude > 1.002948)) {
 		throw std::runtime_error("Something went wrong. Amplitude should be between 0 and 1.");
 	}

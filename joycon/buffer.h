@@ -13,6 +13,7 @@ public:
 
 	std::size_t size() const { return buf.size(); }
 	friend std::ostream& operator<<(std::ostream& os, const BufferBase& in);
+	friend void print(const BufferBase& container, std::size_t size, std::string prefix, std::string delimiter);
 protected:
 	ByteVector buf;
 };
@@ -20,6 +21,10 @@ protected:
 inline std::ostream& operator<<(std::ostream& os, const BufferBase& in) {
 	os << in.buf;
 	return os;
+}
+
+inline void print(const BufferBase& container, std::size_t size = 0, std::string prefix = "", std::string delimiter = "") {
+	print(container.buf, size, prefix, delimiter);
 }
 
 // ID 21:	... | 13 | 14 | 15 - 49 (SUBCMD_reply)		size 50
