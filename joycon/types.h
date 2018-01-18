@@ -6,6 +6,7 @@
 #include <string>
 #include <chrono>
 #include <stdexcept>
+#include <type_traits>
 
 using byte = unsigned char;
 using ByteVector = std::vector<byte>;
@@ -32,13 +33,19 @@ struct is_valid_container<ByteArray<N>> {
 
 // usage:
 // template <typename T>
-// typename std::enable_if<is_valid_container<T>::value, >::type
+// typename std::enable_if<is_valid_container<T>::value, RETURN_TYPE>::type
+// f(T const&)
+
+// check for byte-type containers:
+// template <typename T>
+// typename std::enable_if<std::is_same<typename T::value_type, byte>::value, RETURN_TYPE>::type
 // f(T const&)
 
 /* HELPER FUNCTIONS */
 
 template <typename const_iterator>
-inline unsigned long int to_int(const_iterator it_begin, const_iterator it_end, bool bigEndian = true) {
+typename std::enable_if<std::is_same<typename const_iterator::value_type, byte>::value, unsigned long int>::type
+to_int(const_iterator it_begin, const_iterator it_end, bool bigEndian = true) {
 
 	unsigned long int res{ 0 };
 
@@ -66,17 +73,20 @@ inline unsigned long int to_int(const_iterator it_begin, const_iterator it_end, 
 }
 
 template <typename T>
-inline unsigned long int to_int(const T& container, bool bigEndian = true) {
+typename std::enable_if<std::is_same<typename T::value_type, byte>::value, unsigned long int>::type
+to_int(const T& container, bool bigEndian = true) {
 	return to_int(container.begin(), container.end(), bigEndian);
 }
 
 template <typename T>
-inline unsigned long int to_int(const T& container, std::size_t start, std::size_t length, bool bigEndian = true) {
+typename std::enable_if<std::is_same<typename T::value_type, byte>::value, unsigned long int>::type
+to_int(const T& container, std::size_t start, std::size_t length, bool bigEndian = true) {
 	return to_int(container.begin() + start, container.begin() + start + length, bigEndian);
 }
 
 template <typename const_iterator>
-inline std::string to_hex_string(const_iterator it_begin, const_iterator it_end, std::string prefix = "0x", std::string delimiter = "") {
+typename std::enable_if<std::is_same<typename const_iterator::value_type, byte>::value, std::string>::type
+to_hex_string(const_iterator it_begin, const_iterator it_end, std::string prefix = "0x", std::string delimiter = "") {
 
 	int length = std::distance(it_begin, it_end);
 	if (length < 0) {
@@ -106,17 +116,20 @@ inline std::string to_hex_string(const_iterator it_begin, const_iterator it_end,
 }
 
 template <typename T>
-inline std::string to_hex_string(const T& container, std::string prefix = "0x", std::string delimiter = "") {
+typename std::enable_if<std::is_same<typename T::value_type, byte>::value, std::string>::type
+to_hex_string(const T& container, std::string prefix = "0x", std::string delimiter = "") {
 	return to_hex_string(container.begin(), container.end(), prefix, delimiter);
 }
 
 template <typename T>
-inline std::string to_hex_string(const T& container, std::size_t start, std::size_t length, std::string prefix = "0x", std::string delimiter = "") {
+typename std::enable_if<std::is_same<typename T::value_type, byte>::value, std::string>::type
+to_hex_string(const T& container, std::size_t start, std::size_t length, std::string prefix = "0x", std::string delimiter = "") {
 	return to_hex_string(container.begin() + start, container.begin() + start + length, prefix, delimiter);
 }
 
 template <typename T>
-inline void print(const T& container, unsigned int size = 0) {
+typename std::enable_if<std::is_same<typename T::value_type, byte>::value, void>::type
+print(const T& container, unsigned int size = 0) {
 
 	if (size == 0) {
 		size = container.size();
@@ -126,13 +139,9 @@ inline void print(const T& container, unsigned int size = 0) {
 	std::cout << to_hex_string(container.begin(), container.begin() + size, "", " ") << std::endl;
 }
 
-template <std::size_t N>
-inline std::ostream& operator<<(std::ostream& os, const ByteArray<N>& container) {
-	os << to_hex_string(container.begin(), container.end(), "", " ");
-	return os;
-}
-
-inline std::ostream& operator<<(std::ostream& os, const ByteVector& container) {
+template <typename T>
+typename std::enable_if<std::is_same<typename T::value_type, byte>::value, std::ostream& >::type
+operator<<(std::ostream& os, const T& container) {
 	os << to_hex_string(container.begin(), container.end(), "", " ");
 	return os;
 }
