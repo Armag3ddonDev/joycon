@@ -87,7 +87,7 @@ void ByteBase<T>::print(unsigned int size) const {
 	} else if (size > this->size()) {
 		throw std::out_of_range("Size is too big!");
 	}
-	std::cout << this->to_hex_string(this->begin(), this->begin() + size, "", " ");
+	std::cout << this->to_hex_string(this->begin(), this->begin() + size, "", " ") << std::endl;
 }
 
 template <typename T>
