@@ -37,7 +37,7 @@ public:
 
 	Rumble() {}
 
-	Rumble(double freqeuncy, double amplitude) : frequency(frequency), amplitude(amplitude) {
+	Rumble(double frequency, double amplitude) : frequency(frequency), amplitude(amplitude) {
 		pack();
 	}
 
