@@ -1,91 +1,34 @@
 #pragma once
 
-#include <vector>
-#include <string>
 #include <unordered_set>
 
-enum POWER{
-	EMPTY,
-	CRITICAL,
-	LOW,
-	MEDIUM,
-	FULL
-};
-
-typedef std::vector<unsigned char>::iterator byte_iterator;
-typedef std::vector<unsigned char>::const_iterator const_byte_iterator;
-
-// function collection for byte-containers
-template <typename T>
-class ByteBase {
-
-public:
-
-	virtual std::size_t size() const = 0;
-	virtual byte_iterator begin() = 0;
-	virtual byte_iterator end() = 0;
-	virtual const_byte_iterator begin() const = 0;
-	virtual const_byte_iterator end() const = 0;
-
-	unsigned long int to_int(bool bigEndian = true) const;
-	unsigned long int to_int(std::size_t start,            std::size_t length, bool bigEndian = true) const;
-	unsigned long int to_int(const_byte_iterator it_begin, std::size_t length, bool bigEndian = true) const;
-
-	std::string to_hex_string(std::string prefix = "0x", std::string delimiter = "") const;
-	std::string to_hex_string(std::size_t start,            std::size_t length,         std::string prefix = "0x", std::string delimiter = "") const;
-	std::string to_hex_string(const_byte_iterator it_begin, const_byte_iterator it_end, std::string prefix = "0x", std::string delimiter = "") const;
-	
-	void print(unsigned int size = 0) const;
-	void print(const_byte_iterator it_begin, const_byte_iterator it_end) const;
-
-	void swap();
-	T swapped() const;
-
-	operator long unsigned int() { return this->to_int(this->begin(), this->size()); }
-};
-
-// non-resizable minimal std::vector<unsigned char> class
-class ByteVector : public ByteBase<ByteVector>{
-public:
-	ByteVector() {}
-	ByteVector(std::size_t n) : vec(n, 0) {}
-	ByteVector(std::initializer_list<unsigned char> l) : vec(l) {}
-	ByteVector(const_byte_iterator it_start, const_byte_iterator it_end) : vec(it_start, it_end) {}
-	ByteVector(const ByteVector&) = default;
-
-	std::size_t size() const { return vec.size(); }
-
-	unsigned char* data() { return vec.data(); }
-	const unsigned char* data() const { return vec.data(); }
-
-	byte_iterator begin() { return vec.begin(); }
-	byte_iterator end() { return vec.end(); }
-	const_byte_iterator begin() const { return vec.begin(); }
-	const_byte_iterator end() const { return vec.end(); }
-
-	unsigned char& operator[](std::size_t idx) { return vec[idx]; }
-	const unsigned char& operator[](std::size_t idx) const { return vec[idx]; }
-
-	unsigned char& at(std::size_t idx) { return vec.at(idx); }
-	const unsigned char& at(std::size_t idx) const { return vec.at(idx); }
-
-private:
-	std::vector<unsigned char> vec;
-};
+#include "rumble.h"
+#include "types.h"
 
 // only expose some functions of ByteVector to BufferBase
-class BufferBase : protected ByteVector {
+class BufferBase {
 public:
-	BufferBase(std::size_t size) : ByteVector(size), buf(*this) {}
-	BufferBase(const BufferBase& other) : ByteVector(other), buf(*this) {}
+	BufferBase(std::size_t size) : buf(size, 0) {}
+	BufferBase(const BufferBase& other) : buf(other.buf) {}
 
-	using ByteVector::to_hex_string;
-	using ByteVector::print;
-	using ByteVector::size;
+	std::size_t size() const { return buf.size(); }
+	explicit operator ByteVector() { return buf; }
+
+	friend std::ostream& operator<<(std::ostream& os, const BufferBase& in);
+	friend void print(const BufferBase& container, std::size_t size, std::string prefix, std::string delimiter);
 
 protected:
-	ByteVector& buf;
+	ByteVector buf;
 };
+
+inline std::ostream& operator<<(std::ostream& os, const BufferBase& in) {
+	os << in.buf;
+	return os;
+}
+
+inline void print(const BufferBase& container, std::size_t size = 0, std::string prefix = "", std::string delimiter = "") {
+	print(container.buf, size, prefix, delimiter);
+}
 
 // ID 21:	... | 13 | 14 | 15 - 49 (SUBCMD_reply)		size 50
 // ID 23 :	... | 13 - 49 (MCU report)					size 50
@@ -100,12 +43,12 @@ public:
 
 	bool enabledNFC() const { return buf.size() == 362; }
 	void clean();
-	inline unsigned char* data() { return buf.data(); }
-	inline const unsigned char* data() const { return buf.data(); }
+	inline byte* data() { return buf.data(); }
+	inline const byte* data() const { return buf.data(); }
 
-	const unsigned char& get_ID() const;
+	const byte& get_ID() const;
 
-	const unsigned char& get_timer() const;
+	const byte& get_timer() const;
 
 	POWER get_battery_level() const;
 
@@ -118,14 +61,14 @@ public:
 	// get_vibrator_input_report() const;
 
 	// ID 21
-	const unsigned char& get_ACK() const;
+	const byte& get_ACK() const;
 
 	// ID 21
-	const unsigned char& get_subcommandID_reply() const;
+	const byte& get_subcommandID_reply() const;
 
 	// ID 21
 	ByteVector get_reply_data(std::size_t offset = 0, std::size_t length = 0) const;
-	const unsigned char&  get_reply_data_at(std::size_t idx) const;
+	const byte&  get_reply_data_at(std::size_t idx) const;
 
 	// ID 23
 	ByteVector get_MCU_FW_update_report() const;
@@ -137,8 +80,8 @@ public:
 	ByteVector get_NFC_IR_input_report() const;
 
 private:
-	void check_ID(unsigned char valid) const;
-	void check_ID(std::unordered_set<unsigned char> valid_list) const;
+	void check_ID(byte valid) const;
+	void check_ID(std::unordered_set<byte> valid_list) const;
 };
 
 
@@ -153,23 +96,24 @@ public:
 	OutputBuffer(std::size_t dataSize = 0);
 	OutputBuffer(OutputBuffer&) = delete;
 
-	inline const unsigned char* data() const { return buf.data(); }
+	inline const byte* data() const { return buf.data(); }
 
 	/// set command byte
-	void set_cmd(unsigned char in);	
+	void set_cmd(byte in);	
 
 	/// set global packet number (increments by 1 for each package sent;  It loops in 0x0 - 0xF range)
-	void set_GP(unsigned char in);	
+	void set_GP(byte in);	
 
 	/// set subcommand byte
-	void set_subcmd(unsigned char in);	
+	void set_subcmd(byte in);	
 
 	/// set left rumble data
-	void set_RL(unsigned char a, unsigned char b, unsigned char c, unsigned char d);
+	void set_rumble_left(const Rumble& rumble);
 
 	/// set right rumble data
-	void set_RR(unsigned char a, unsigned char b, unsigned char c, unsigned char d);
+	void set_rumble_right(const Rumble& rumble);
 
 	/// set data
 	void set_data(const ByteVector& data);
+
 };
