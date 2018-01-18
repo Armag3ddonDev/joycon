@@ -12,8 +12,11 @@ public:
 	BufferBase(const BufferBase& other) : buf(other.buf) {}
 
 	std::size_t size() const { return buf.size(); }
+	explicit operator ByteVector() { return buf; }
+
 	friend std::ostream& operator<<(std::ostream& os, const BufferBase& in);
 	friend void print(const BufferBase& container, std::size_t size, std::string prefix, std::string delimiter);
+
 protected:
 	ByteVector buf;
 };

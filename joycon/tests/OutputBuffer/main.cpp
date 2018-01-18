@@ -59,14 +59,14 @@ TEST(OutputBufferCTor, TestMaxSizeCTor) {
 //cmd | timing byte | 4 byte with rumble set to neutral for left joycon | 4 byte with rumble set to neutral for right joycon | subcommand id
 TEST(OutputBufferMember, TestDefaultContent) {
 	OutputBuffer buf_out;
-	std::string hexstr = to_hex_string(buf_out, "", " "); //call to_hex_string to get formated output
+	std::string hexstr = to_hex_string(static_cast<ByteVector>(buf_out), "", " "); //call to_hex_string to get formated output
 	EXPECT_EQ(hexstr, "00 00 00 01 40 40 00 01 40 40 00"); //and compare with expected result
 }
 
 //init outputbuffer with length = 65 and check if data block (after 11th byte) is empty (all 00)
 TEST(OutputBufferMember, TestDefaultDataContent)  {
 	OutputBuffer buf_out(65);
-	std::string hexstr = to_hex_string(buf_out, "", " ");
+	std::string hexstr = to_hex_string(static_cast<ByteVector>(buf_out), "", " ");
 	EXPECT_EQ(hexstr, "00 00 00 01 40 40 00 01 40 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 "
 					  "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 "
 					  "00 00 00 00 00 00 00 00 00 00 00 00 00 00");
@@ -76,11 +76,11 @@ TEST(OutputBufferMember, TestDefaultDataContent)  {
 TEST(OutputBufferMember, TestSet_cmd) {
 	OutputBuffer buf_out;
 	buf_out.set_cmd(0x30);
-	std::string hexstr = to_hex_string(buf_out, "", " ");
+	std::string hexstr = to_hex_string(static_cast<ByteVector>(buf_out), "", " ");
 	EXPECT_EQ(hexstr, "30 00 00 01 40 40 00 01 40 40 00");
 
 	buf_out.set_cmd(-1); //unsigned char -> -1 == ff
-	hexstr = to_hex_string(buf_out, "", " ");
+	hexstr = to_hex_string(static_cast<ByteVector>(buf_out), "", " ");
 	EXPECT_EQ(hexstr, "ff 00 00 01 40 40 00 01 40 40 00");
 }
 
@@ -95,15 +95,15 @@ TEST(OutputBufferMember, TestData) {
 
 	OutputBuffer buf_out(1);
 	EXPECT_NO_THROW(buf_out.set_data({0x11}););
-	std::string hexstr = to_hex_string(buf_out, "", " ");
+	std::string hexstr = to_hex_string(static_cast<ByteVector>(buf_out), "", " ");
 	EXPECT_EQ(hexstr, "00 00 00 01 40 40 00 01 40 40 00 11"); //the last byte should be the data byte which we should be set to 0x11
 
 	buf_out.set_subcmd(0x3F);
-	hexstr = to_hex_string(buf_out, "", " ");
+	hexstr = to_hex_string(static_cast<ByteVector>(buf_out), "", " ");
 	EXPECT_EQ(hexstr, "00 00 00 01 40 40 00 01 40 40 3f 11"); //second last byte (index: 10) should be 3f
 
 	buf_out.set_subcmd(-1);
-	hexstr = to_hex_string(buf_out, "", " ");
+	hexstr = to_hex_string(static_cast<ByteVector>(buf_out), "", " ");
 	EXPECT_EQ(hexstr, "00 00 00 01 40 40 00 01 40 40 ff 11"); //second last byte (index: 10) should be ff
 
 	OutputBuffer buf_real(5);
@@ -116,15 +116,15 @@ TEST(OutputBufferMember, TestData) {
 TEST(OutputBufferMember, TestSet_GP) {
 	OutputBuffer buf_out;
 	buf_out.set_GP(1);
-	std::string hexstr = to_hex_string(buf_out, "", " ");
+	std::string hexstr = to_hex_string(static_cast<ByteVector>(buf_out), "", " ");
 	EXPECT_EQ(hexstr, "00 01 00 01 40 40 00 01 40 40 00");
 
 	buf_out.set_GP(-1);
-	hexstr = to_hex_string(buf_out, "", " ");
+	hexstr = to_hex_string(static_cast<ByteVector>(buf_out), "", " ");
 	EXPECT_EQ(hexstr, "00 ff 00 01 40 40 00 01 40 40 00");
 
 	buf_out.set_GP(0x30);
-	hexstr = to_hex_string(buf_out, "", " ");
+	hexstr = to_hex_string(static_cast<ByteVector>(buf_out), "", " ");
 	EXPECT_EQ(hexstr, "00 30 00 01 40 40 00 01 40 40 00");
 }
 
@@ -132,12 +132,12 @@ TEST(OutputBufferMember, TestSet_GP) {
 TEST(OutputBufferMember, TestSetRumble) {
 	OutputBuffer buf_out;
 	buf_out.set_RL(0, 0, 0, 0); //left rumble block set to 00
-	std::string hexstr = to_hex_string(buf_out, "", " ");
+	std::string hexstr = to_hex_string(static_cast<ByteVector>(buf_out), "", " ");
 	EXPECT_EQ(hexstr, "00 00 00 00 00 00 00 01 40 40 00");
 
 	buf_out.set_rumble_left(Rumble()); //reset left rumble data
 	buf_out.set_rumble_right(Rumble({0x00, 0x00, 0x00, 0x00})); //right rubmel block to 00
-	hexstr = to_hex_string(buf_out, "", " ");
+	hexstr = to_hex_string(static_cast<ByteVector>(buf_out), "", " ");
 	EXPECT_EQ(hexstr, "00 00 00 01 40 40 00 00 00 00 00");
 }
 
