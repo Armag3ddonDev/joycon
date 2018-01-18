@@ -11,7 +11,8 @@ set(SOURCES
     main.cpp
     buffer.cpp
     joycon.cpp
-	rumble.cpp)
+	rumble.cpp
+	homelight.cpp)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
