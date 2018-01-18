@@ -131,7 +131,7 @@ TEST(OutputBufferMember, TestSet_GP) {
 //check if we can change left and right rumble data
 TEST(OutputBufferMember, TestSetRumble) {
 	OutputBuffer buf_out;
-	buf_out.set_rumble_left({0, 0, 0, 0}); //left rumble block set to 00
+	buf_out.set_rumble_left(Rumble({0, 0, 0, 0})); //left rumble block set to 00
 	std::string hexstr = to_hex_string(static_cast<ByteVector>(buf_out), "", " ");
 	EXPECT_EQ(hexstr, "00 00 00 00 00 00 00 01 40 40 00");
 
