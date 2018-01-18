@@ -1,6 +1,6 @@
 #include <cmath>
 
-#include "buffer.h"
+#include "types.h"
 #include "rumble.h"
 
 /*

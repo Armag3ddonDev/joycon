@@ -1,15 +1,16 @@
 #pragma once
 
-#include "buffer.h"
+#include <string>
+
+#include "types.h"
 
 class Rumble
 {
 public:
 
-	Rumble() : frequency(0.0), amplitude(0.0), data({0x00, 0x01, 0x40, 0x40}) {
-	}
+	Rumble() {}
 
-	Rumble(double freqeuncy, double amplitude) : frequency(frequency), amplitude(amplitude), data() {
+	Rumble(double freqeuncy, double amplitude) : frequency(frequency), amplitude(amplitude) {
 		pack();
 	}
 
@@ -34,6 +35,6 @@ private:
 
 	double frequency;
 	double amplitude;
-	ByteArray<4> data;
+	ByteArray<4> data{0x00, 0x01, 0x40, 0x40};
 };
 

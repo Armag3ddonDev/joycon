@@ -90,16 +90,14 @@ InputBuffer Joycon::send_command(unsigned char cmd, unsigned char subcmd, const 
 	buff_out.set_data(data);
 	buff_out.set_GP(package_number & 0x0F);
 
-	std::cout << "sending:  ";
-	buff_out.print();
+	std::cout << "sending:  " << buff_out << std::endl;
 
 	CHECK(hid_write(handle, buff_out.data(), buff_out.size()));
 
 	InputBuffer buff_in;
 	CHECK(hid_read(handle, buff_in.data(), buff_in.size()));
 
-	std::cout << "received: ";
-	buff_in.print();
+	std::cout << "received: " << buff_in << std::endl;
 
 	if (blocking) { CHECK(hid_set_nonblocking(handle, 1)); }
 
@@ -121,7 +119,7 @@ void Joycon::callback() {
 			continue;
 		}
 
-		buff_in.print();
+		std::cout << buff_in << std::endl;
 	}
 }
 
@@ -138,7 +136,7 @@ JoyconDeviceInfo Joycon::request_device_info() {
 	ByteVector data = buff_in.get_reply_data(0, 12);
 	info.firmwareVersion = std::to_string(data[0]) + "." + std::to_string(data[1]);
 	info.joyconType = data[2];
-	info.mac = data.to_hex_string(4, 6, "", ":");
+	info.mac = to_hex_string(data, 4, 6, "", ":");
 	info.useColorsSPI = data[11];
 
 	return info;
@@ -161,13 +159,13 @@ TriggerButtonElapsedTime Joycon::trigger_button_elapsed_time() {
 
 	TriggerButtonElapsedTime res;
 	ByteVector data = buff_in.get_reply_data(0, 14);
-	res.L = std::chrono::milliseconds(data.to_int(0, 2, false));
-	res.R = std::chrono::milliseconds(data.to_int(2, 2, false));
-	res.ZL = std::chrono::milliseconds(data.to_int(4, 2, false));
-	res.ZR = std::chrono::milliseconds(data.to_int(6, 2, false));
-	res.SL = std::chrono::milliseconds(data.to_int(8, 2, false));
-	res.SR = std::chrono::milliseconds(data.to_int(10, 2, false));
-	res.HOME = std::chrono::milliseconds(data.to_int(12, 2, false));
+	res.L = std::chrono::milliseconds(to_int(data, 0, 2, false));
+	res.R = std::chrono::milliseconds(to_int(data, 2, 2, false));
+	res.ZL = std::chrono::milliseconds(to_int(data, 4, 2, false));
+	res.ZR = std::chrono::milliseconds(to_int(data, 6, 2, false));
+	res.SL = std::chrono::milliseconds(to_int(data, 8, 2, false));
+	res.SR = std::chrono::milliseconds(to_int(data, 10, 2, false));
+	res.HOME = std::chrono::milliseconds(to_int(data, 12, 2, false));
 
 	return res;
 }
@@ -201,7 +199,7 @@ ByteVector Joycon::SPI_flash_read(ByteVector address, unsigned char length) {
 	}
 
 	ByteVector data_send(5);
-	address.swap();	// little endian
+	std::reverse(address.begin(), address.end());	// little endian
 	std::copy(address.begin(), address.end(), data_send.begin());
 	data_send[4] = length;
 
@@ -376,7 +374,7 @@ POWER Joycon::get_regulated_voltage() {
 		throw std::runtime_error("Did not receive correct answer!");
 	}
 
-	unsigned long int power_level = buff_in.get_reply_data(0, 2).to_int(false);
+	unsigned long int power_level = to_int(buff_in.get_reply_data(0, 2), false);
 	if (power_level <= 0x059F) { return POWER::CRITICAL; }
 	else if (power_level <= 0x05DF) { return POWER::LOW; }
 	else if (power_level <= 0x0617) { return POWER::MEDIUM; }

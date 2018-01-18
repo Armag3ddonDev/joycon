@@ -1,100 +1,26 @@
 #pragma once
 
-#include <algorithm>
-#include <string>
 #include <unordered_set>
-#include <vector>
-#include <bitset>
 
 #include "rumble.h"
-
-enum POWER{
-	EMPTY,
-	CRITICAL,
-	LOW,
-	MEDIUM,
-	FULL
-};
-
-using byte = unsigned char;
-
-// restrict containers and add new functionality
-template <typename T>
-class ByteContainer {
-
-public:
-	template <typename... Args>
-	ByteContainer(Args && ...args) : T(std::forward<Args>(args)...) {}
-	ByteContainer(const T& other) : vec(other.vec) {}
-
-	std::size_t size() const { return vec.size(); }
-
-	byte* data() { return vec.data(); }
-	const byte* data() const { return vec.data(); }
-
-	using iterator = typename T::iterator;
-	using const_iterator = typename T::iterator;
-
-	iterator begin() { return vec.begin(); }
-	iterator end() { return vec.end(); }
-	const_iterator begin() const { return vec.begin(); }
-	const_iterator end() const { return vec.end(); }
-
-	byte& operator[](std::size_t idx) { return vec[idx]; }
-	const byte& operator[](std::size_t idx) const { return vec[idx]; }
-
-	byte& at(std::size_t idx) { return vec.at(idx); }
-	const byte& at(std::size_t idx) const { return vec.at(idx); }
-
-	unsigned long int to_int(bool bigEndian = true) const;
-	unsigned long int to_int(std::size_t start, std::size_t length, bool bigEndian = true) const;
-	unsigned long int to_int(const_iterator it_begin, std::size_t length, bool bigEndian = true) const;
-
-	std::string to_hex_string(std::string prefix = "0x", std::string delimiter = "") const;
-	std::string to_hex_string(std::size_t start, std::size_t length, std::string prefix = "0x", std::string delimiter = "") const;
-	std::string to_hex_string(const_iterator it_begin, const_iterator it_end, std::string prefix = "0x", std::string delimiter = "") const;
-
-	void print(unsigned int size = 0) const;
-	void print(const_iterator it_begin, const_iterator it_end) const;
-
-	operator long unsigned int() { return this->to_int(this->begin(), this->size()); }
-
-private:
-
-	T vec;
-};
-
-class ByteVector : public ByteContainer<std::vector<byte>> {
-
-public:
-	ByteVector() {}
-	ByteVector(std::size_t n) : ByteContainer<std::vector<byte>>(n, 0) {}
-	ByteVector(std::initializer_list<byte> list) : ByteContainer<std::vector<byte>>(list) {}
-	ByteVector(const_iterator it_start, const_iterator it_end) : ByteContainer<std::vector<byte>>(it_start, it_end) {}
-	ByteVector(const ByteVector&) = default;
-};
-
-template <std::size_t N>
-class ByteArray : public ByteContainer<std::array<byte, N>> {
-public:
-	ByteArray() {}
-	ByteArray(std::initializer_list<byte> list) : ByteContainer<std::array<byte, N>>(list) {}
-	ByteArray(const ByteArray<N>&) = default;
-};
+#include "types.h"
 
 // only expose some functions of ByteVector to BufferBase
-class BufferBase : protected ByteVector {
+class BufferBase {
 public:
-	BufferBase(std::size_t size) : ByteVector(size), buf(*this) {}
-	BufferBase(const BufferBase& other) : ByteVector(other), buf(*this) {}
+	BufferBase(std::size_t size) : buf(size, 0) {}
+	BufferBase(const BufferBase& other) : buf(other.buf) {}
 
-	using ByteVector::to_hex_string;
-	using ByteVector::print;
-	using ByteVector::size;
-
+	std::size_t size() const { return buf.size(); }
+	friend std::ostream& operator<<(std::ostream& os, const BufferBase& in);
 protected:
-	ByteVector& buf;
+	ByteVector buf;
 };
+
+inline std::ostream& operator<<(std::ostream& os, const BufferBase& in) {
+	os << in.buf;
+	return os;
+}
 
 // ID 21:	... | 13 | 14 | 15 - 49 (SUBCMD_reply)		size 50
 // ID 23 :	... | 13 - 49 (MCU report)					size 50

@@ -128,6 +128,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="buffer.cpp" />
+    <ClCompile Include="homelight.cpp" />
     <ClCompile Include="joycon.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="rumble.cpp" />
@@ -135,8 +136,10 @@
   <ItemGroup>
     <ClInclude Include="buffer.h" />
     <ClInclude Include="hidapi.h" />
+    <ClInclude Include="homelight.h" />
     <ClInclude Include="joycon.h" />
     <ClInclude Include="rumble.h" />
+    <ClInclude Include="types.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

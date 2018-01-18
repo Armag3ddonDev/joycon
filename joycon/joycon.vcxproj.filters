@@ -27,6 +27,9 @@
     <ClCompile Include="rumble.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="homelight.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="joycon.h">
@@ -39,6 +42,12 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="rumble.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="types.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="homelight.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
