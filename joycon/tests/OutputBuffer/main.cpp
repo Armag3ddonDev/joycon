@@ -5,6 +5,7 @@
 #include "gmock/gmock.h"
 
 #include "buffer.h"
+#include "rumble.h"
 
 namespace {
 
@@ -128,19 +129,35 @@ TEST(OutputBufferMember, TestSet_GP) {
 	EXPECT_EQ(hexstr, "00 30 00 01 40 40 00 01 40 40 00");
 }
 
-// DEACTIVATED due to changes in 'Rumble()'
-//check if we can change left and right rumble data
-//TEST(OutputBufferMember, TestSetRumble) {
-	// OutputBuffer buf_out;
-	// buf_out.set_rumble_left(Rumble({0, 0, 0, 0})); //left rumble block set to 00
-	// std::string hexstr = to_hex_string(static_cast<ByteVector>(buf_out), "", " ");
-	// EXPECT_EQ(hexstr, "00 00 00 00 00 00 00 01 40 40 00");
+TEST(OutputBufferMember, TestSet_rumble_leftandright) {
+	OutputBuffer buf_out;
 
-	// buf_out.set_rumble_left(Rumble()); //reset left rumble data
-	// buf_out.set_rumble_right(Rumble({0x00, 0x00, 0x00, 0x00})); //right rubmel block to 00
-	// hexstr = to_hex_string(static_cast<ByteVector>(buf_out), "", " ");
-	// EXPECT_EQ(hexstr, "00 00 00 01 40 40 00 00 00 00 00");
-//}
+	Rumble rmbl_left(100, 1); //100Hz with max amplitude
+	//100Hz with 1.0 as amplitude => rmbl.data: 0x28 0xc8 0x2a 0x72
+	Rumble rmbl_right(200, 0.5); //200Hz with half amplitude
+	//200Hz with 0.5 as amplitude => rmbl.data: 0xa8 0x88 0x4a 0x62
+
+	//content of "empty", default set, OutputBuffer:
+	std::string expected_empty_buf = "00 00 00 01 40 40 00 01 40 40 00"; //00 01 40 40 - Rumble data with amplitude = 0 -> dont rumble
+	std::string test_empty_buf = to_hex_string(static_cast<ByteVector>(buf_out), "", " ");
+
+	EXPECT_EQ(expected_empty_buf, test_empty_buf);
+
+
+	buf_out.set_rumble_left(rmbl_left);
+	std::string expected_left_rumble_buf = "00 00 28 c8 2a 72 00 01 40 40 00";
+	std::string test_left_rumble_buf = to_hex_string(static_cast<ByteVector>(buf_out), "", " ");
+
+	EXPECT_EQ(expected_left_rumble_buf, test_left_rumble_buf);
+
+
+	buf_out.set_rumble_right(rmbl_right);
+
+	std::string expected_right_rumble_buf = "00 00 28 c8 2a 72 a8 88 4a 62 00";
+	std::string test_right_rumble_buf = to_hex_string(static_cast<ByteVector>(buf_out), "", " ");
+
+	EXPECT_EQ(expected_right_rumble_buf, test_right_rumble_buf);
+}
 
 } //namespace
 
