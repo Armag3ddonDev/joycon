@@ -4,22 +4,29 @@
 
 # The Rumble Bytes
 
-| Byte 3 | Byte 2 | Byte 1 | Byte 0 |
-|:--:|:---:|:---:|:---:|
-`01LL LLLL` | `KIII IIII` | `JJJJ JJJG` | `HHHH HH00`
+The rumble data has the following layout:
 
-|   ID  | START | STEP | END | Byte
-|:------|:-----:|:----:|:---:|:-----------:|
-**hf**  | 0x00 |0x01  |0x7F | `0GHH HHHH`
-**lf**      | 0x00 |0x01  |0x7F | `0III IIII`
-**hf_amp**  | 0x00 |0x01  |0x7F | `0JJJ JJJJ`
-**lf_amp**  | 0x00 |0x01  |0x7F | `0LLL LLLK`
+|          | Layout      | Default |
+|:---------|:-----------:|:-------:|
+**Byte 0** | `HHHH HH00` | `0x00`  |
+**Byte 1** | `JJJJ JJJG` | `0x01`  |
+**Byte 2** | `KIII IIII` | `0x40`  |
+**Byte 3** | `01LL LLLL` | `0x40`  |
+
+where
+
+|   ID      | START | STEP | END | Byte			| Default |
+|:----------|:-----:|:----:|:----:|:-----------:|:-------:|
+**hf**      | 0x00 | 0x01  | 0x7F | `0GHH HHHH` | 0x40
+**lf**      | 0x00 | 0x01  | 0x7F | `0III IIII` | 0x40
+**hf_amp**  | 0x00 | 0x01  | 0x7F | `0JJJ JJJJ` | 0x00
+**lf_amp**  | 0x00 | 0x01  | 0x7F | `0LLL LLLK` | 0x00
 
 Encoding data this way, we get the relations `lf = hf + 0x20` and `lf_amp = hf_amp`, as can be seen in the table.
 
 ### Encoding
 ```
-	unsigned char data[4];
+	uin8_t data[4];
 	data[0] = (hf << 2);
 	data[1] = (hf_amp << 1) | (hf >> 6);
 	data[2] = (lf_amp << 7) | lf;
@@ -30,8 +37,8 @@ Encoding data this way, we get the relations `lf = hf + 0x20` and `lf_amp = hf_a
 ```
 	hf     = (data[1] << 6) | (data[0] >> 2);
 	hf_amp = data[1] >> 1;
-	lf     = (unsigned char)(data[2] << 1) >> 1;
-	lf_amp = ((unsigned char)(data[3] << 2) >> 1) | (data[2] >> 7);
+	lf     = (uin8_t)(data[2] << 1) >> 1;
+	lf_amp = ((uin8_t)(data[3] << 2) >> 1) | (data[2] >> 7);
 ```
 
 ---
@@ -44,8 +51,8 @@ The decoding algorithm for frequency is `10.0*pow(2.0, (double)(encoded_hex_freq
 
 ```
 	// both assignments produce the same result (in their common ranges - see table)
-	unsigned char encoded_hex_freq = lf + 0x40;	
-	unsigned char encoded_hex_freq = hf + 0x60;
+	uin8_t encoded_hex_freq = lf + 0x40;	
+	uin8_t encoded_hex_freq = hf + 0x60;
 	
 	// maps to 40 - 1252.57223...
 	double frequency =  10.0*pow(2.0, (double)(encoded_hex_freq) / 32.0);
@@ -56,7 +63,7 @@ The decoding algorithm for frequency is `10.0*pow(2.0, (double)(encoded_hex_freq
 
 ## Frequency -> Bytes
 
-The encoding algorithm for frequency is `log2((double)freq/10.0)*32.0`. Here, The result needs to be shifted:
+The encoding algorithm for frequency is `log2((double)freq/10.0)*32.0`. Here, the result needs to be shifted:
 ```
 	// frequency must be between 40.87 and 1252.57
 
@@ -89,13 +96,13 @@ The encoding algorithm for amplitude is split into four ranges:
 *	`0.000000 <= amplitude < 0.008000` : `0x00`
 *	`0.008000 <= amplitude < 0.112491` : `(uint8_t)(round((log2(amplitude * 5.0 / 18.0) + 9.0)*4.00)) - 1`
 *	`0.112491 <= amplitude < 0.224982` : `(uint8_t)(round((log2(amplitude * 5.0 / 18.0) + 6.0)*16.0)) - 1`
-*	`1.799701 <= amplitude < 1.799701` : `(uint8_t)(round((log2(amplitude * 5.0 / 18.0) + 5.0)*32.0)) - 1`
+*	`0.224982 <= amplitude < 1.799701` : `(uint8_t)(round((log2(amplitude * 5.0 / 18.0) + 5.0)*32.0)) - 1`
 
 Those functions map to `0x00(0) - 0x64(100)` for amplitude <= 1 and `0x00 - 0x7E(126)` for `amplitude < 1.799701`. Remember, that `amplitude > 1` is **NOT** safe for the integrity of the linear resonant actuators!
 
 # Tables
 
-The following tables were copied from [dekuNukems](https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering/blob/master/rumble_data_table.md) and adapter for our format of `hf`, `lf`, `hf_amp` and `lf_amp`. `??` are assumed to be zero.
+The following tables were copied from [dekuNukems](https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering/blob/master/rumble_data_table.md) and adapted for our format of `hf`, `lf`, `hf_amp` and `lf_amp`. `??` are assumed to be zero.
 
 ## Frequency Table
 
