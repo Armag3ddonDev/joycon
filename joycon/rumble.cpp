@@ -31,7 +31,7 @@ void Rumble::unpack() {
 
 void Rumble::encode_frequency(double frequency, byte& hf, byte& lf) const {
 
-	// Float frequency to hex conversion
+	// Double frequency to hex conversion
 	if (frequency < 40.87 || frequency > 1252.57) {
 		throw std::invalid_argument("frequency must be between 40.87 and 1252.57.");
 	}
@@ -57,14 +57,11 @@ void Rumble::encode_amplitude(double amplitude, byte& hf_amp, byte& lf_amp) cons
 	byte amp_encoded;
 	if (amplitude < 0.008) {
 		amp_encoded = 0x00;
-	}
-	else if (amplitude < 0.112491) {
+	} else if (amplitude < 0.112491) {
 		amp_encoded = static_cast<uint8_t>(std::round((std::log2(amplitude * 5.0 / 18.0) + 9.0)*4.0)) - 1;
-	}
-	else if (amplitude < 0.224982) {
+	} else if (amplitude < 0.224982) {
 		amp_encoded = static_cast<uint8_t>(std::round((std::log2(amplitude * 5.0 / 18.0) + 6.0)*16.0)) - 1;
-	}
-	else {
+	} else {
 		amp_encoded = static_cast<uint8_t>(std::round((std::log2(amplitude * 5.0 / 18.0) + 5.0)*32.0)) - 1;
 	}
 
@@ -97,7 +94,8 @@ double Rumble::decode_frequency(byte hf, byte lf) const {
 		encoded_hex_freq = hf + 0x60;
 	}
 
-	double frequency =  10.0*std::pow(2.0, static_cast<float>(encoded_hex_freq) / 32.0);
+	// maps to 40 - 1252.57223...
+	double frequency =  10.0*std::pow(2.0, static_cast<double>(encoded_hex_freq) / 32.0);
 	return std::max(40.87, std::min(1252.57, frequency));
 }
 
@@ -115,14 +113,11 @@ double Rumble::decode_amplitude(byte hf_amp, byte lf_amp) const {
 	// maps to 0 - 1.00295
 	if (amp_encoded == 0x00) {
 		amplitude = 0.0;
-	}
-	else if (amp_encoded <= 0x0F) {
+	} else if (amp_encoded <= 0x0F) {
 		amplitude = 18.0 / 5.0*std::pow(2.0, static_cast<double>(amp_encoded + 1) / 4.0 - 9.0);
-	}
-	else if (amp_encoded <= 0x1F) {
+	} else if (amp_encoded <= 0x1F) {
 		amplitude = 18.0 / 5.0*std::pow(2.0, static_cast<double>(amp_encoded + 1) / 16.0 - 6.0);
-	}
-	else {
+	} else {
 		amplitude = 18.0 / 5.0*std::pow(2.0, static_cast<double>(amp_encoded + 1) / 32.0 - 5.0);
 	}
 

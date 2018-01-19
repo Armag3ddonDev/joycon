@@ -8,7 +8,8 @@ class Rumble
 {
 public:
 
-	Rumble() {}
+	// default values -> no rumble
+	Rumble() : frequency(0.0), amplitude(0.0), data{0x00, 0x01, 0x40, 0x40} {}
 
 	Rumble(double frequency, double amplitude) : frequency(frequency), amplitude(amplitude) {
 		pack();

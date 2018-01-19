@@ -1,4 +1,4 @@
-*Disclaimer*: Parts of this research is based on [dekuNukems](https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering/blob/master/rumble_data_table.md) results. We made the frequency and amplitude data fit in one byte, with increments of `0x01` and proposed a new encoding function for amplitude.
+*Disclaimer*: Parts of this research is based on results by [dekuNukem](https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering/blob/master/rumble_data_table.md). We made the frequency and amplitude data fit in one byte, with increments of `0x01` and proposed a new encoding function for amplitude.
 
 ---
 
@@ -102,7 +102,7 @@ Those functions map to `0x00(0) - 0x64(100)` for amplitude <= 1 and `0x00 - 0x7E
 
 # Tables
 
-The following tables were copied from [dekuNukems](https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering/blob/master/rumble_data_table.md) and adapted for our format of `hf`, `lf`, `hf_amp` and `lf_amp`. `??` are assumed to be zero.
+The following tables were copied from [dekuNukem](https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering/blob/master/rumble_data_table.md) and adapted for our format of `hf`, `lf`, `hf_amp` and `lf_amp`. `??` are assumed to be zero.
 
 ## Frequency Table
 

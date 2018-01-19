@@ -1,8 +1,7 @@
-#include <iostream>
 #include <chrono>
-#include <thread>
-#include <vector>
+#include <iostream>
 #include <signal.h>
+#include <thread>
 
 #ifdef _WIN32
 #include "hidapi.h"
