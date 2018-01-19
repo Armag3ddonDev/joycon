@@ -40,22 +40,23 @@ Encoding data this way, we get the relations `lf = hf + 0x20` and `lf_amp = hf_a
 
 ## Frequency <- Bytes
 
-The decoding algorithm for frequency is `10.0*pow(2.0, (double)(encoded_hex_freq) / 32.0)`. The result needs to be shifted:
+The decoding algorithm for frequency is `10.0*pow(2.0, (double)(encoded_hex_freq) / 32.0)`. The input needs to be shifted:
 
 ```
-	unsigned char encoded_hex_freq = lf + 0x40;
+	// both assignments produce the same result (in their common ranges - see table)
+	unsigned char encoded_hex_freq = lf + 0x40;	
 	unsigned char encoded_hex_freq = hf + 0x60;
 	
 	// maps to 40 - 1252.57223...
 	double frequency =  10.0*pow(2.0, (double)(encoded_hex_freq) / 32.0);
 	
 	// clamp solution
-	frequency max(40.87, min(1252.57, frequency));
+	frequency = max(40.87, min(1252.57, frequency));
 ```
 
 ## Frequency -> Bytes
 
-The encoding algorithm for frequency is `log2((double)freq/10.0)*32.0`. Here, the input needs to be shifted.
+The encoding algorithm for frequency is `log2((double)freq/10.0)*32.0`. Here, The result needs to be shifted:
 ```
 	// frequency must be between 40.87 and 1252.57
 
