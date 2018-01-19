@@ -60,7 +60,7 @@ The encoding algorithm for frequency is `log2((double)freq/10.0)*32.0`. Here, th
 	// frequency must be between 40.87 and 1252.57
 
 	// maps to 0x41(65) - 0xDF(223)
-	uint8_t encoded_hex_freq = (uint8_t)(std::round(std::log2(frequency / 10.0)*32.0));
+	uint8_t encoded_hex_freq = (uint8_t)(round(log2(frequency / 10.0)*32.0));
 
 	// Convert to Joy-Con HF range. Range: 0x01-0x7F
 	hf = (encoded_hex_freq > 0x60) ? (encoded_hex_freq - 0x60) : 0x00
@@ -76,9 +76,9 @@ The encoding algorithm for frequency is `log2((double)freq/10.0)*32.0`. Here, th
 
 The decoding algorithm for amplitude is split into four ranges:
 *	`0x00`        : `0.0`
-*	`0x01 - 0x0F` : `18.0 / 5.0*std::pow(2.0, (double)(hf_amp + 1) / 4.00 - 9.0)`
-*	`0x0F - 0x1F` : `18.0 / 5.0*std::pow(2.0, (double)(hf_amp + 1) / 16.0 - 6.0)`
-*	`0x1F - 0x7F` : `18.0 / 5.0*std::pow(2.0, (double)(hf_amp + 1) / 32.0 - 5.0)`
+*	`0x01 - 0x0F` : `18.0 / 5.0*pow(2.0, (double)(hf_amp + 1) / 4.00 - 9.0)`
+*	`0x0F - 0x1F` : `18.0 / 5.0*pow(2.0, (double)(hf_amp + 1) / 16.0 - 6.0)`
+*	`0x1F - 0x7F` : `18.0 / 5.0*pow(2.0, (double)(hf_amp + 1) / 32.0 - 5.0)`
 
 This directly yields `hf_amp` and `lf_amp` (without shift), which are equal. If `hf_amp <= 0x64` (safe amplitude range), this function maps to `0.0 - 1.00295`.
 
@@ -94,7 +94,7 @@ Those functions map to `0x00(0) - 0x64(100)` for amplitude <= 1 and `0x00 - 0x7E
 
 # Tables
 
-The following tables were copied from [dekuNukems](https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering/blob/master/rumble_data_table.md) and adapter for our format of `hf`, `lf`, `hf_amp` and `lf_amp`.
+The following tables were copied from [dekuNukems](https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering/blob/master/rumble_data_table.md) and adapter for our format of `hf`, `lf`, `hf_amp` and `lf_amp`. `??` are assumed to be zero.
 
 ## Frequency Table
 
