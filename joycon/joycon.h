@@ -1,9 +1,10 @@
 #pragma once
 
+#include <mutex>
 #include <string>
 #include <stdexcept>
-#include <vector>
 #include <thread>
+#include <vector>
 
 #ifdef _WIN32
 #include "hidapi.h"
@@ -26,13 +27,13 @@ class Joycon {
 
 public:
 	Joycon(Joycon&) = delete;
-	Joycon(Joycon&&) = default;
+	Joycon(Joycon&&) = delete;
 	Joycon(JOY_PID PID, wchar_t* serial_number);
 
 	~Joycon();
 
 	void printDeviceInfo() const;
-	InputBuffer send_command(unsigned char cmd, unsigned char subcmd, const ByteVector& data, bool blocking = true);
+	InputBuffer send_command(unsigned char cmd, unsigned char subcmd, const ByteVector& data, bool blocking = true, Rumble rumble = Rumble());
 	void capture();
 	void callback();
 
@@ -98,6 +99,8 @@ public:
 
 	POWER get_regulated_voltage();
 
+	void send_rumble(Rumble rumble = Rumble());
+
 private:
 
 	void check_input_arguments(std::unordered_set<unsigned char> list, unsigned char arg, std::string error_msg) const;
@@ -106,12 +109,17 @@ private:
 	std::thread callback_thread;
 	bool alive = true;
 	std::size_t package_number = 0;
+
+	mutable std::mutex hid_mutex;
 };
 
 class JoyconVec {
 public:
 	int addDevices();
 	int startDevices();
+
+	std::size_t size() { return vec.size(); }
+	Joycon& device(std::size_t idx) { return *vec.at(idx); }
 private:
-	std::vector<Joycon> vec;
+	std::vector<std::unique_ptr<Joycon>> vec;
 };

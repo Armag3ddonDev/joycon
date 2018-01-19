@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <unordered_set>
+#include <mutex>
 
 #include "joycon.h"
 #include "buffer.h"
@@ -59,7 +60,9 @@ Joycon::~Joycon() {
 }
 
 void Joycon::printDeviceInfo() const {
-	
+
+	std::lock_guard<std::mutex> lock(hid_mutex);
+
 	std::cout << "Device Info:" << std::endl;
 	
 	wchar_t wstr[MAX_STR];
@@ -81,8 +84,9 @@ void Joycon::printDeviceInfo() const {
 	//std::wcout << L"	Indexed String 1: " << wstr << std::endl;
 }
 
-InputBuffer Joycon::send_command(unsigned char cmd, unsigned char subcmd, const ByteVector& data, bool blocking) {
+InputBuffer Joycon::send_command(unsigned char cmd, unsigned char subcmd, const ByteVector& data, bool blocking, Rumble rumble) {
 
+	std::lock_guard<std::mutex> lock(hid_mutex);
 	if (blocking) { CHECK(hid_set_nonblocking(handle, 0)); }
 
 	OutputBuffer buff_out(data.size());
@@ -97,12 +101,14 @@ InputBuffer Joycon::send_command(unsigned char cmd, unsigned char subcmd, const 
 	CHECK(hid_write(handle, buff_out.data(), buff_out.size()));
 
 	InputBuffer buff_in;
-	CHECK(hid_read(handle, buff_in.data(), buff_in.size()));
+	if (blocking) {
+		CHECK(hid_read(handle, buff_in.data(), buff_in.size()));
 
-	std::cout << "received: ";
-	print(buff_in);
+		std::cout << "received: ";
+		print(buff_in);
 
-	if (blocking) { CHECK(hid_set_nonblocking(handle, 1)); }
+		CHECK(hid_set_nonblocking(handle, 1)); 
+	}
 
 	++package_number;
 
@@ -116,7 +122,10 @@ void Joycon::callback() {
 		buff_in.clean();
 
 		// Read requested state
-		CHECK(hid_read(handle, buff_in.data(), buff_in.size()));
+		{
+			std::lock_guard<std::mutex> lock(hid_mutex);
+			CHECK(hid_read(handle, buff_in.data(), buff_in.size()));
+		}
 
 		if (buff_in.get_ID() == 0x00) {
 			continue;
@@ -384,6 +393,10 @@ POWER Joycon::get_regulated_voltage() {
 	else { return POWER::FULL; }
 }
 
+void Joycon::send_rumble(Rumble rumble) {
+	this->send_command(0x10, 0x00, {}, false, rumble);
+}
+
 void Joycon::check_input_arguments(std::unordered_set<unsigned char> list, unsigned char arg, std::string error_msg) const {
 	if (list.find(arg) == list.end()) {
 		std::stringstream error;
@@ -427,7 +440,7 @@ int JoyconVec::addDevices() {
 		}
 
 		try {
-			vec.emplace_back(static_cast<JOY_PID>(current->product_id), current->serial_number);
+			vec.emplace_back(new Joycon(static_cast<JOY_PID>(current->product_id), current->serial_number));
 		}
 		catch (std::exception& e) {
 			std::cout << e.what() << std::endl;
@@ -448,8 +461,8 @@ int JoyconVec::startDevices() {
 		return -1;
 	} else {
 		std::cout << "Starting capture for " << vec.size() << " devices!" << std::endl;
-		for (Joycon& jc : vec) {
-			jc.capture();
+		for (const auto& jc_ptr : vec) {
+			jc_ptr->capture();
 		}
 	}
 	return 0;
