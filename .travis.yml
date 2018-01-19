@@ -31,6 +31,7 @@ before_script:
 
 script:
   - make
+  - make test #execute all tests
 
 notifications:
   webhooks: https://fathomless-fjord-24024.herokuapp.com/notify
