@@ -31,7 +31,6 @@ before_script:
 
 script:
   - make
-  - cd tests/OutputBuffer && ./outputbuffer
 
 notifications:
   webhooks: https://fathomless-fjord-24024.herokuapp.com/notify
