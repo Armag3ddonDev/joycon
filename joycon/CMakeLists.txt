@@ -6,14 +6,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED 14)
 set(CMAKE_CXX_STANDARD 14)
 
 set(SOURCES
-    main.cpp
     buffer.cpp
     joycon.cpp
 	rumble.cpp
 	homelight.cpp)
 
-add_executable(${PROJECT_NAME} ${SOURCES})
+add_executable(${PROJECT_NAME} main.cpp ${SOURCES})
+target_link_libraries(${PROJECT_NAME} hidapi-hidraw pthread)
 
+add_executable(${PROJECT_NAME} music.cpp ${SOURCES})
 target_link_libraries(${PROJECT_NAME} hidapi-hidraw pthread)
 
 # enable tests per default
