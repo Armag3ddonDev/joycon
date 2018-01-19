@@ -25,11 +25,6 @@ void Rumble::unpack() {
 	byte lf     = static_cast<byte>(data[2] << 1) >> 1;
 	byte lf_amp = (static_cast<byte>(data[3] << 2) >> 1) | (data[2] >> 7);
 
-	std::cout << std::hex << "hf: " << (int)hf << std::endl;
-	std::cout << std::hex << "hf_amp: " << (int)hf_amp << std::endl;
-	std::cout << std::hex << "lf: " << (int)lf << std::endl;
-	std::cout << std::hex << "lf_amp: " << (int)lf_amp << std::endl;
-
 	this->frequency = decode_frequency(hf, lf);
 	this->amplitude = decode_amplitude(hf_amp, lf_amp);
 }
@@ -95,7 +90,6 @@ double Rumble::decode_frequency(byte hf, byte lf) const {
 			throw std::invalid_argument("lf (" + std::to_string(lf) + ") and hf (" + std::to_string(hf) + ") don't producde the same frequency!");
 		} else {
 			encoded_hex_freq = lf + 0x40;
-			std::cout << std::hex <<  "leeeroy" << (int) encoded_hex_freq << std::endl;
 		}
 	} else if (hf == 0) {
 			throw std::invalid_argument("lf and hf can not be both 0x00.");
