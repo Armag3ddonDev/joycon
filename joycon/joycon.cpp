@@ -36,13 +36,7 @@ Joycon::Joycon(JOY_PID PID, wchar_t* serial_number) : package_number(0) {
 		this->set_input_report_mode(0x30);
 
 		std::cout << "Reading SPI calibration..." << std::endl;
-		// this->factory_sensor_cal	= this->SPI_flash_read(0x6020, 0x18);
-		// this->factory_stick_cal	= this->SPI_flash_read(0x603D, 0x12);
-		// this->sensor_model		= this->SPI_flash_read(0x6080, 0x06);
-		// this->stick_model		= this->SPI_flash_read(0x6086, 0x12);
-		// this->&stick_model[0x12] = this->SPI_flash_read(0x6098, 0x12);
-		// this->user_stick_cal		= this->SPI_flash_read(0x8010, 0x16);
-		// this->user_sensor_cal	= this->SPI_flash_read(0x8026, 0x1A);
+		// this->sensorCalib = this->get_sensor_calibration();
 
 	} catch (std::exception& e) {
 		hid_close(handle);
@@ -95,6 +89,8 @@ InputBuffer Joycon::send_command(unsigned char cmd, unsigned char subcmd, const 
 	buff_out.set_rumble_right(rumble);
 	buff_out.set_subcmd(subcmd);
 	buff_out.set_data(data);
+	buff_out.set_rumble_left(rumble);
+	buff_out.set_rumble_right(rumble);
 	buff_out.set_GP(package_number & 0x0F);
 
 	std::cout << "sending:  ";
@@ -202,10 +198,10 @@ void Joycon::set_shipment(bool enable) {
 }
 #endif
 
-ByteVector Joycon::SPI_flash_read(ByteVector address, unsigned char length) {
+ByteVector Joycon::SPI_flash_read(unsigned int address, unsigned char length) {
 
-	if (address.size() != 4) {
-		throw std::runtime_error("Dimension mismatch!");
+	if (address > 0xFFFFFFFF) {
+		throw std::invalid_argument("Address can only have 4 byte!");
 	}
 
 	if (length > 0x1D) {
@@ -213,17 +209,13 @@ ByteVector Joycon::SPI_flash_read(ByteVector address, unsigned char length) {
 	}
 
 	ByteVector data_send(5);
-	std::reverse(address.begin(), address.end());	// little endian
-	std::copy(address.begin(), address.end(), data_send.begin());
+	to_byte_container(address, data_send, 0, 4, false);
 	data_send[4] = length;
 
 	InputBuffer buff_in = this->send_command(0x01, 0x10, data_send, true);
 
-	if (buff_in.get_subcommandID_reply() != 0x90   || 
-		buff_in.get_reply_data_at(0) != address[0] ||
-		buff_in.get_reply_data_at(1) != address[1] ||
-		buff_in.get_reply_data_at(2) != address[2] ||
-		buff_in.get_reply_data_at(3) != address[3] ||
+	if (buff_in.get_subcommandID_reply() != 0x90 || 
+		to_int(buff_in.get_reply_data(0, 4), false) != address ||
 		buff_in.get_reply_data_at(4) != length) 
 	{
 		throw std::runtime_error("Did not receive correct answer!");
@@ -233,10 +225,10 @@ ByteVector Joycon::SPI_flash_read(ByteVector address, unsigned char length) {
 }
 
 #ifdef ENABLE_UNTESTED
-void Joycon::SPI_flash_write(ByteVector address, ByteVector data) {
+void Joycon::SPI_flash_write(unsigned int address, ByteVector data) {
 
-	if (address.size() != 4) {
-		throw std::runtime_error("Dimension mismatch!");
+	if (address > 0xFFFFFFFF) {
+		throw std::invalid_argument("Address can only have 4 byte!");
 	}
 
 	if (data.size() > 0x1D) {
@@ -244,10 +236,7 @@ void Joycon::SPI_flash_write(ByteVector address, ByteVector data) {
 	}
 
 	ByteVector data_send(5 + data.size());
-
-	// write header
-	address.swap();	// little endian
-	std::copy(address.begin(), address.end(), data_send.begin());
+	to_byte_container(address, data_send, 0, 4, false);
 	data_send[4] = data.size();
 
 	// write data
@@ -256,10 +245,7 @@ void Joycon::SPI_flash_write(ByteVector address, ByteVector data) {
 	InputBuffer buff_in = this->send_command(0x01, 0x11, data_send, true);
 
 	if (buff_in.get_subcommandID_reply() != 0x91   ||
-		buff_in.get_reply_data_at(0) != address[0] ||
-		buff_in.get_reply_data_at(1) != address[1] ||
-		buff_in.get_reply_data_at(2) != address[2] ||
-		buff_in.get_reply_data_at(3) != address[3] ||
+		to_int(buff_in.get_reply_data(0, 4), false) != address ||
 		buff_in.get_reply_data_at(4) != length)
 	{
 		throw std::runtime_error("Did not receive correct answer!");
@@ -272,19 +258,16 @@ void Joycon::SPI_flash_write(ByteVector address, ByteVector data) {
 #endif
 
 #ifdef ENABLE_UNTESTED
-void Joycon::SPI_sector_erase(ByteVector address) {
+void Joycon::SPI_sector_erase(unsigned int address) {
 
-	if (address.size() != 4) {
-		throw std::runtime_error("Dimension mismatch!");
+	if (address > 0xFFFFFFFF) {
+		throw std::invalid_argument("Address can only have 4 byte!");
 	}
 
 	InputBuffer buff_in = this->send_command(0x01, 0x12, address.swapped(), true);
 
-	if (buff_in.get_subcommandID_reply() != 0x92   ||
-		buff_in.get_reply_data_at(0) != address[0] ||
-		buff_in.get_reply_data_at(1) != address[1] ||
-		buff_in.get_reply_data_at(2) != address[2] ||
-		buff_in.get_reply_data_at(3) != address[3])
+	if (buff_in.get_subcommandID_reply() != 0x92 ||
+		to_int(buff_in.get_reply_data(0, 4), false) != address)
 	{
 		throw std::runtime_error("Did not receive correct answer!");
 	}
@@ -397,6 +380,43 @@ POWER Joycon::get_regulated_voltage() {
 
 void Joycon::send_rumble(Rumble rumble) {
 	this->send_command(0x10, 0x00, {}, false, rumble);
+}
+
+SensorCalibration Joycon::get_sensor_calibration() {
+	SensorCalibration calib;
+	calib.factory_sensor_cal	= this->SPI_flash_read(0x6020, 0x18);
+	calib.factory_stick_cal		= this->SPI_flash_read(0x603D, 0x12);
+	calib.sensor_model			= this->SPI_flash_read(0x6080, 0x06);
+	calib.stick_model1			= this->SPI_flash_read(0x6086, 0x12);
+	calib.stick_model2			= this->SPI_flash_read(0x6098, 0x12);
+	calib.user_stick_cal		= this->SPI_flash_read(0x8010, 0x16);
+	calib.user_sensor_cal		= this->SPI_flash_read(0x8026, 0x1A);
+
+	return calib;
+}
+
+Color24 Joycon::get_body_RGB() {
+
+	Color24 res;
+	ByteVector reply = this->SPI_flash_read(0x6050, 0x03);
+
+	res.R = reply.at(0);
+	res.G = reply.at(1);
+	res.B = reply.at(2);
+
+	return res;
+}
+
+Color24 Joycon::get_button_RGB() {
+
+	Color24 res;
+	ByteVector reply = this->SPI_flash_read(0x6053, 0x03);
+
+	res.R = reply.at(0);
+	res.G = reply.at(1);
+	res.B = reply.at(2);
+
+	return res;
 }
 
 void Joycon::check_input_arguments(std::unordered_set<unsigned char> list, unsigned char arg, std::string error_msg) const {

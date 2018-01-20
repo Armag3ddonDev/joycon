@@ -1,13 +1,14 @@
 #pragma once
 
-#include <vector>
+#include <algorithm>
 #include <array>
-#include <sstream>
-#include <string>
 #include <chrono>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
+#include <vector>
 
 using byte = unsigned char;
 using ByteVector = std::vector<byte>;
@@ -82,6 +83,9 @@ to_int(const T& container, bool bigEndian = true) {
 template <typename T>
 typename std::enable_if<std::is_same<typename T::value_type, byte>::value, unsigned long int>::type
 to_int(const T& container, std::size_t start, std::size_t length, bool bigEndian = true) {
+	if (!(start < container.size()) || (start + length > container.size())) {
+		throw std::invalid_argument("'start' or 'start + length - 1' are outside the container");
+	}
 	return to_int(container.begin() + start, container.begin() + start + length, bigEndian);
 }
 
@@ -125,7 +129,47 @@ to_hex_string(const T& container, std::string prefix = "0x", std::string delimit
 template <typename T>
 typename std::enable_if<std::is_same<typename T::value_type, byte>::value, std::string>::type
 to_hex_string(const T& container, std::size_t start, std::size_t length, std::string prefix = "0x", std::string delimiter = "") {
+	if (!(start < container.size()) || (start + length > container.size())) {
+		throw std::invalid_argument("'start' or 'start + length - 1' are outside the container");
+	}
 	return to_hex_string(container.begin() + start, container.begin() + start + length, prefix, delimiter);
+}
+
+template <typename iterator>
+typename std::enable_if<std::is_same<typename iterator::value_type, byte>::value, void>::type
+to_byte_container(unsigned long int data, iterator it_begin, iterator it_end, bool bigEndian = true) {
+	int length = std::distance(it_begin, it_end);
+	if (length < 0) {
+		throw std::underflow_error("it_begin > it_end");
+	}
+
+	for (iterator it = it_begin; it != it_end; ++it) {
+		*it = data & 0xFF;
+		data >>= 8;
+	}
+
+	if (data != 0) {
+		throw std::runtime_error("data did not completely fit into container!");
+	}
+
+	if (!bigEndian) {
+		std::reverse(it_begin, it_end);
+	}
+}
+
+template <typename T>
+typename std::enable_if<std::is_same<typename T::value_type, byte>::value>::type
+to_byte_container(unsigned long int data, T& container, bool bigEndian = true) {
+	return to_byte_container(data, container.begin(), container.end(), bigEndian);
+}
+
+template <typename T>
+typename std::enable_if<std::is_same<typename T::value_type, byte>::value>::type
+to_byte_container(unsigned long int data, T& container, std::size_t start, std::size_t length, bool bigEndian = true) {
+	if (!(start < container.size()) || (start + length > container.size())) {
+		throw std::invalid_argument("'start' or 'start + length - 1' are outside the container");
+	}
+	return to_byte_container(data, container.begin() + start, container.begin() + start + length, bigEndian);
 }
 
 template <typename T>
@@ -137,7 +181,7 @@ operator<<(std::ostream& os, const T& container) {
 
 template <typename T>
 typename std::enable_if<std::is_same<typename T::value_type, byte>::value>::type
-print(const T& container, std::size_t size = 0, std::string prefix = "", std::string delimiter = "") {
+print(const T& container, std::size_t size = 0, std::string prefix = "", std::string delimiter = " ") {
 
 	if (size == 0) {
 		size = container.size();
@@ -195,3 +239,19 @@ constexpr PLAYER_LIGHTS operator|(PLAYER_LIGHTS X, PLAYER_LIGHTS Y) {
 constexpr PLAYER_LIGHTS operator&(PLAYER_LIGHTS X, PLAYER_LIGHTS Y) {
 	return static_cast<PLAYER_LIGHTS>(static_cast<unsigned char>(X) & static_cast<unsigned char>(Y));
 }
+
+struct SensorCalibration {
+	ByteVector factory_sensor_cal;
+	ByteVector factory_stick_cal;
+	ByteVector sensor_model;
+	ByteVector stick_model1;
+	ByteVector stick_model2;
+	ByteVector user_stick_cal;
+	ByteVector user_sensor_cal;
+};
+
+struct Color24 {
+	byte R;
+	byte G;
+	byte B;
+};

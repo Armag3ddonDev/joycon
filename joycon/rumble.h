@@ -21,6 +21,7 @@ public:
 
 	const double& getFreqeuncy() const { return frequency; }
 	const double& getAmplitude() const { return amplitude; }
+	const ByteArray<4>& getByte() const { return data; }
 	const byte& byte_at(std::size_t idx) const { return data.at(idx); }
 
 private:

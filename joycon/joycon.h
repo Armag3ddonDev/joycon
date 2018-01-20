@@ -68,14 +68,11 @@ public:
 	void set_shipment(bool enable);
 #endif
 
-	ByteVector SPI_flash_read(ByteVector address, unsigned char length);
+	ByteVector SPI_flash_read(unsigned int address, unsigned char length);
 
 #ifdef ENABLE_UNTESTED
-	void SPI_flash_write(ByteVector address, ByteVector data);
-#endif
-
-#ifdef ENABLE_UNTESTED
-	void SPI_sector_erase(ByteVector address);
+	void SPI_flash_write(unsigned int address, ByteVector data);
+	void SPI_sector_erase(unsigned int address);
 #endif
 
 	void set_player_lights(PLAYER_LIGHTS arg);
@@ -101,9 +98,17 @@ public:
 
 	void send_rumble(Rumble rumble = Rumble());
 
+	SensorCalibration get_sensor_calibration();
+
+	Color24 get_body_RGB();
+
+	Color24 get_button_RGB();
+
 private:
 
 	void check_input_arguments(std::unordered_set<unsigned char> list, unsigned char arg, std::string error_msg) const;
+
+	SensorCalibration sensorCalib;
 
 	hid_device* handle;
 	std::thread callback_thread;
