@@ -91,6 +91,8 @@ InputBuffer Joycon::send_command(unsigned char cmd, unsigned char subcmd, const 
 
 	OutputBuffer buff_out(data.size());
 	buff_out.set_cmd(cmd);
+	buff_out.set_rumble_left(rumble);
+	buff_out.set_rumble_right(rumble);
 	buff_out.set_subcmd(subcmd);
 	buff_out.set_data(data);
 	buff_out.set_GP(package_number & 0x0F);

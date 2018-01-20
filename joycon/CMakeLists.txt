@@ -14,8 +14,8 @@ set(SOURCES
 add_executable(${PROJECT_NAME} main.cpp ${SOURCES})
 target_link_libraries(${PROJECT_NAME} hidapi-hidraw pthread)
 
-add_executable(${PROJECT_NAME} music.cpp ${SOURCES})
-target_link_libraries(${PROJECT_NAME} hidapi-hidraw pthread)
+add_executable(music music.cpp ${SOURCES})
+target_link_libraries(music hidapi-hidraw pthread)
 
 # enable tests per default
 option(BUILD_TESTS "Build automatic tests" ON)
