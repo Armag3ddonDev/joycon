@@ -181,7 +181,7 @@ operator<<(std::ostream& os, const T& container) {
 
 template <typename T>
 typename std::enable_if<std::is_same<typename T::value_type, byte>::value>::type
-print(const T& container, std::size_t size = 0, std::string prefix = "", std::string delimiter = "") {
+print(const T& container, std::size_t size = 0, std::string prefix = "", std::string delimiter = " ") {
 
 	if (size == 0) {
 		size = container.size();

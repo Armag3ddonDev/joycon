@@ -36,7 +36,7 @@ Joycon::Joycon(JOY_PID PID, wchar_t* serial_number) : package_number(0) {
 		this->set_input_report_mode(0x30);
 
 		std::cout << "Reading SPI calibration..." << std::endl;
-		this->sensorCalib = this->get_sensor_calibration();
+		// this->sensorCalib = this->get_sensor_calibration();
 
 	} catch (std::exception& e) {
 		hid_close(handle);
