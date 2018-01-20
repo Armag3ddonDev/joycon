@@ -1,13 +1,14 @@
 #pragma once
 
-#include <vector>
+#include <algorithm>
 #include <array>
-#include <sstream>
-#include <string>
 #include <chrono>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
+#include <vector>
 
 using byte = unsigned char;
 using ByteVector = std::vector<byte>;
