@@ -19,7 +19,7 @@ static void SigCallback(int sig) {
 }
 
 struct Note {
-	Note(Rumble Note, double duration) : rumble(rumble), duration(duration) {}
+	Note(Rumble rumble, double duration) : rumble(rumble), duration(duration) {}
 	Rumble rumble;
 	double duration;
 };
@@ -116,58 +116,58 @@ namespace Music {
 
 	static constexpr double P = 1200;
 
-
+	double amp = 0.5;
 	Song TTTE = {
-	Note(Rumble(G3,	1.0),	1./8.),
-	Note(Rumble(A3,	1.0),	1./8.),
-	Note(Rumble(B3,	1.0),	1./8.),
-	Note(Rumble(C4,	1.0),	1./4.),
-	Note(Rumble(D4,	1.0),	1./8.),
-	Note(Rumble(E4,	1.0),	1./8.),
-	Note(Rumble(P,	0.0),	1./8.),
+		Note(Rumble(G3,		amp),	1. / 8.),
+		Note(Rumble(A3,		amp),	1. / 8.),
+		Note(Rumble(B3,		amp),	1. / 8.),
+		Note(Rumble(C4,		amp),	1. / 4.),
+		Note(Rumble(D4,		amp),	1. / 8.),
+		Note(Rumble(E4,		amp),	1. / 8.),
+		Note(Rumble(P,		0.0),	1. / 8.),
 
-	Note(Rumble(Ab3,	1.0),	1.),
+		Note(Rumble(Ab3,	amp),	1.),
 
-	Note(Rumble(A3,	1.0),	1./8.),
-	Note(Rumble(F3,	1.0),	1./8.),
-	Note(Rumble(A3,	1.0),	1./8.),
-	Note(Rumble(G3,	1.0),	1./8. + 1./4.),
-	Note(Rumble(P,	0.0),	1./8. + 1./16.),
-	Note(Rumble(Gs3,	1.0),	1./16.),
+		Note(Rumble(A3,		amp),	1. / 8.),
+		Note(Rumble(F3,		amp),	1. / 8.),
+		Note(Rumble(A3,		amp),	1. / 8.),
+		Note(Rumble(G3,		amp),	1. / 8. + 1. / 4.),
+		Note(Rumble(P,		0.0),	1. / 8. + 1. / 16.),
+		Note(Rumble(Gs3,	amp),	1. / 16.),
 
-	Note(Rumble(A3,	1.0),	1./8.),
-	Note(Rumble(F3,	1.0),	1./8.),
-	Note(Rumble(F3,	1.0),	1./8.),
-	Note(Rumble(A3,	1.0),	1./16.),
-	Note(Rumble(G3,	1.0),	1./16. + 1./8. + 1./16.),
-	Note(Rumble(Fs3,	1.0),	1./16.),
-	Note(Rumble(G3,	1.0),	1./16.),
-	Note(Rumble(Fs3,	1.0),	1./16.),
-	Note(Rumble(G3,	1.0),	1./16.),
-	Note(Rumble(Fs3,	1.0),	1./16.),
+		Note(Rumble(A3,		amp),	1. / 8.),
+		Note(Rumble(F3,		amp),	1. / 8.),
+		Note(Rumble(F3,		amp),	1. / 8.),
+		Note(Rumble(A3,		amp),	1. / 16.),
+		Note(Rumble(G3,		amp),	1. / 16. + 1. / 8. + 1. / 16.),
+		Note(Rumble(Fs3,	amp),	1. / 16.),
+		Note(Rumble(G3,		amp),	1. / 16.),
+		Note(Rumble(Fs3,	amp),	1. / 16.),
+		Note(Rumble(G3,		amp),	1. / 16.),
+		Note(Rumble(Fs3,	amp),	1. / 16.),
 
-	Note(Rumble(G3,	1.0),	1./4.),
-	Note(Rumble(G3,	1.0),	1./8),
-	Note(Rumble(P,	0.0),	1./4. + 1./16.),
-	Note(Rumble(Fs3,	1.0),	1./16.),
-	Note(Rumble(G3,	1.0),	1./16.),
-	Note(Rumble(Fs3,	1.0),	1./16.),
-	Note(Rumble(G3,	1.0),	1./8.),
+		Note(Rumble(G3,		amp),	1. / 4.),
+		Note(Rumble(G3,		amp),	1. / 8),
+		Note(Rumble(P,		0.0),	1. / 4. + 1. / 16.),
+		Note(Rumble(Fs3,	amp),	1. / 16.),
+		Note(Rumble(G3,		amp),	1. / 16.),
+		Note(Rumble(Fs3,	amp),	1. / 16.),
+		Note(Rumble(G3,		amp),	1. / 8.),
 
-	Note(Rumble(A3,	1.0),	1./4.),
-	Note(Rumble(A3,	1.0),	1./8.),
-	Note(Rumble(P,	0.0),	1./8. + 1./16.),
-	Note(Rumble(Eb3,	1.0),	1./16.),
-	Note(Rumble(Eb3,	1.0),	1./8.),
-	Note(Rumble(F3,	1.0),	1./8.),
-	Note(Rumble(Fs3,	1.0),	1./8.),
+		Note(Rumble(Ab3,	amp),	1. / 4.),
+		Note(Rumble(Ab3,	amp),	1. / 8.),
+		Note(Rumble(P,		0.0),	1. / 8. + 1. / 16.),
+		Note(Rumble(Eb3,	amp),	1. / 16.),
+		Note(Rumble(Eb3,	amp),	1. / 8.),
+		Note(Rumble(F3,		amp),	1. / 8.),
+		Note(Rumble(Fs3,	amp),	1. / 8.),
 
-	Note(Rumble(G3,	1.0),	1./2.),
-	Note(Rumble(Bb3,	1.0),	1./2.),
-	Note(Rumble(F3,	1.0),	1./2.),
-	Note(Rumble(G3,	1.0),	1./2.),
+		Note(Rumble(G3,		amp),	1. / 4.),
+		Note(Rumble(Bb3,	amp),	1. / 4.),
+		Note(Rumble(F3,		amp),	1. / 4.),
+		Note(Rumble(G3,		amp),	1. / 4.),
 
-	Note(Rumble(A3,	1.0),	1./16.)};
+		Note(Rumble(Ab3,		amp),	1. / 16.) };
 
 }
 
@@ -185,13 +185,24 @@ int main() {
 
 	JoyconVec joycons;
 	if (joycons.addDevices() == -1) { hid_exit();  return 0; }
-	if (joycons.startDevices() == -1) { hid_exit();  return 0; };
+
+	double takt_counter{ 0.0 };
 
 	for (const Note& note : Music::TTTE) {
+		std::cout << "freq: " << note.rumble.getFreqeuncy() << " ampl: " << note.rumble.getAmplitude();
+		std::cout << " bytes: " << std::hex << (int)note.rumble.byte_at(0) << " " << (int)note.rumble.byte_at(1) << " " << (int)note.rumble.byte_at(2) << " " << (int)note.rumble.byte_at(3) << " " << std::endl;
 
 		joycons.device(0).send_rumble(note.rumble);
-		std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<unsigned int>(note.duration*1000)));
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<unsigned int>(note.duration * 2500)));
+
+		takt_counter += note.duration;
+		if ( (std::abs(std::round(takt_counter) - takt_counter)) < 1e-8) {
+			std::cout << "--------"  << std::endl;
+		}
 	}
+
+	std::cout << "DONE" << std::endl;
 
 	while (!shutdown_flag) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
