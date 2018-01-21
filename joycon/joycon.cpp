@@ -91,8 +91,7 @@ InputBuffer Joycon::send_command(unsigned char cmd, unsigned char subcmd, const 
 	buff_out.set_rumble_right(rumble);
 	buff_out.set_GP(package_number & 0x0F);
 
-	std::cout << "sending:  ";
-	print(buff_out);
+	std::cout << "sending:  " << buff_out << std::endl;
 
 	CHECK(hid_write(handle, buff_out.data(), buff_out.size()));
 
@@ -100,8 +99,7 @@ InputBuffer Joycon::send_command(unsigned char cmd, unsigned char subcmd, const 
 	if (blocking) {
 		CHECK(hid_read(handle, buff_in.data(), buff_in.size()));
 
-		std::cout << "received: ";
-		print(buff_in);
+		std::cout << "received: " << buff_in << std::endl;
 
 		CHECK(hid_set_nonblocking(handle, 1)); 
 	}

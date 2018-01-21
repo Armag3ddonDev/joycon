@@ -14,21 +14,9 @@ public:
 	std::size_t size() const { return buf.size(); }
 	explicit operator ByteVector() { return buf; }
 
-	friend std::ostream& operator<<(std::ostream& os, const BufferBase& in);
-	friend void print(const BufferBase& container, std::size_t size, std::string prefix, std::string delimiter);
-
 protected:
 	ByteVector buf;
 };
-
-inline std::ostream& operator<<(std::ostream& os, const BufferBase& in) {
-	os << in.buf;
-	return os;
-}
-
-inline void print(const BufferBase& container, std::size_t size = 0, std::string prefix = "", std::string delimiter = "") {
-	print(container.buf, size, prefix, delimiter);
-}
 
 // ID 21:	... | 13 | 14 | 15 - 49 (SUBCMD_reply)		size 50
 // ID 23 :	... | 13 - 49 (MCU report)					size 50
@@ -79,11 +67,31 @@ public:
 	// ID 31
 	ByteVector get_NFC_IR_input_report() const;
 
+	friend std::ostream& operator<<(std::ostream& os, const InputBuffer& in);
+
 private:
 	void check_ID(byte valid) const;
 	void check_ID(std::unordered_set<byte> valid_list) const;
 };
 
+inline std::ostream& operator<<(std::ostream& os, const InputBuffer& in) {
+	os << to_hex_string(in.buf, 0, 1) << " | " << to_hex_string(in.buf, 1, 1) << " | " << to_hex_string(in.buf, 2, 1) << " | ";
+	os << to_hex_string(in.buf, 3, 3) << " | " << to_hex_string(in.buf, 6, 3) << " | " << to_hex_string(in.buf, 9, 3) << " | ";
+	os << to_hex_string(in.buf, 12, 1) << " |";
+
+	if (in.get_ID() == 0x21) {
+		os << " " << to_hex_string(in.buf, 13, 1) << " | " << to_hex_string(in.buf, 14, 1) << " | " << to_hex_string(in.buf, 15, 35) << " |";
+	} else if (in.get_ID() == 0x23) {
+		os << " " << to_hex_string(in.buf, 13, 37) << " |";
+	} else {
+		os << "| " << to_hex_string(in.buf, 13, 12) << " | " << to_hex_string(in.buf, 25, 12) << " | " << to_hex_string(in.buf, 37, 12) << " ||";
+		if (in.get_ID() == 0x31 && in.enabledNFC()) {
+			os << " " << to_hex_string(in.buf, 49, 313) << " | ";
+		}
+	}
+
+	return os;
+}
 
 // byte 0		: CMD
 // byte 1		: GP
@@ -116,4 +124,16 @@ public:
 	/// set data
 	void set_data(const ByteVector& data);
 
+	friend std::ostream& operator<<(std::ostream& os, const OutputBuffer& in);
+
 };
+
+inline std::ostream& operator<<(std::ostream& os, const OutputBuffer& in) {
+	os << to_hex_string(in.buf, 0, 1) << " | " << to_hex_string(in.buf, 1, 1) << " | " ;
+	os << to_hex_string(in.buf, 2, 4) << " | " << to_hex_string(in.buf, 6, 4) << " | ";
+	os << to_hex_string(in.buf, 10, 1) << " |";
+	if (in.buf.size() > 11) {
+		os << " " << to_hex_string(in.buf.begin() + 11, in.buf.end()) << " |";
+	}
+	return os;
+}
