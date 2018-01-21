@@ -94,7 +94,7 @@ inline std::ostream& operator<<(std::ostream& os, const InputBuffer& in) {
 		os << to_hex_string(in.buf, 25, 12, "", " ") << "|";
 		os << to_hex_string(in.buf, 37, 12, "", " ") << " ||";
 		if (in.get_ID() == 0x31 && in.enabledNFC()) {
-			os << " " << to_hex_string(in.buf, 49, 313, "", " ") << " |";
+			os << "\n\t NFC: " << to_hex_string(in.buf, 49, 313, "", " ");
 		}
 	}
 

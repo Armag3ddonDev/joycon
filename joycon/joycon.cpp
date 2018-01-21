@@ -24,6 +24,11 @@ Joycon::Joycon(JOY_PID PID, wchar_t* serial_number) : package_number(0) {
 	}
 
 	try {
+
+		CHECK(hid_set_nonblocking(handle, 1));
+
+		callback_thread = std::thread(&Joycon::callback, this);
+
 		this->printDeviceInfo();
 
 		std::cout << "Enabling vibration..." << std::endl;
@@ -32,7 +37,7 @@ Joycon::Joycon(JOY_PID PID, wchar_t* serial_number) : package_number(0) {
 		std::cout << "Enabling IMU..." << std::endl;
 		this->enable_IMU(true);
 
-		std::cout << "Increasing data rate for Bluetooth..." << std::endl;
+		std::cout << "Activating full report mode..." << std::endl;
 		this->set_input_report_mode(0x30);
 
 		std::cout << "Reading SPI calibration..." << std::endl;
@@ -78,10 +83,7 @@ void Joycon::printDeviceInfo() const {
 	//std::wcout << L"	Indexed String 1: " << wstr << std::endl;
 }
 
-InputBuffer Joycon::send_command(unsigned char cmd, unsigned char subcmd, const ByteVector& data, bool blocking, Rumble rumble) {
-
-	std::lock_guard<std::mutex> lock(hid_mutex);
-	if (blocking) { CHECK(hid_set_nonblocking(handle, 0)); }
+InputBuffer Joycon::send_command(unsigned char cmd, unsigned char subcmd, const ByteVector& data, Rumble rumble) {
 
 	OutputBuffer buff_out(data.size());
 	buff_out.set_cmd(cmd);
@@ -91,17 +93,29 @@ InputBuffer Joycon::send_command(unsigned char cmd, unsigned char subcmd, const 
 	buff_out.set_rumble_right(rumble);
 	buff_out.set_GP(package_number & 0x0F);
 
-	std::cout << "	sending : " << buff_out << std::endl;
+	{
+		std::lock_guard<std::mutex> lock(cout_mutex);
+		std::cout << "	sending : " << buff_out << std::endl;
+	}
 
-	CHECK(hid_write(handle, buff_out.data(), buff_out.size()));
+	{
+		std::lock_guard<std::mutex> lock(hid_mutex);
+		CHECK(hid_write(handle, buff_out.data(), buff_out.size()));
+	}
 
 	InputBuffer buff_in;
-	if (blocking) {
-		CHECK(hid_read(handle, buff_in.data(), buff_in.size()));
+	while (true) {
+		std::lock_guard<std::mutex> lock(subcommand_reply_mutex);
+		if ((command_reply.size() > 0) && (command_reply.front().get_subcommandID_reply() == subcmd)) {
+			buff_in = command_reply.front();
+			command_reply.pop();
+			break;
+		}
+	}
 
+	{
+		std::lock_guard<std::mutex> lock(cout_mutex);
 		std::cout << "	received: " << buff_in << std::endl;
-
-		CHECK(hid_set_nonblocking(handle, 1)); 
 	}
 
 	++package_number;
@@ -122,21 +136,25 @@ void Joycon::callback() {
 		}
 
 		if (buff_in.get_ID() == 0x00) {
+			// std::this_thread::sleep_for(std::chrono::milliseconds(50));
 			continue;
 		}
 
-		std::cout << buff_in << std::endl;
+		if (buff_in.get_ID() == 0x21) {
+			std::lock_guard<std::mutex> lock(subcommand_reply_mutex);
+			command_reply.push(buff_in);
+			continue;
+		}
+
+		{
+			std::lock_guard<std::mutex> lock(cout_mutex);
+			std::cout << buff_in << std::endl;
+		}
 	}
 }
 
-void Joycon::capture() {
-
-	CHECK(hid_set_nonblocking(handle, 1));
-	callback_thread = std::thread(&Joycon::callback, this);
-}
-
 JoyconDeviceInfo Joycon::request_device_info() {
-	InputBuffer buff_in = this->send_command(0x01, 0x02, {}, true);
+	InputBuffer buff_in = this->send_command(0x01, 0x02, {});
 
 	JoyconDeviceInfo info;
 	ByteVector data = buff_in.get_reply_data(0, 12);
@@ -157,11 +175,11 @@ void Joycon::set_input_report_mode(unsigned char irm) {
 		cmd = 0x11;
 	}
 
-	this->send_command(cmd, 0x03, { irm }, true);
+	this->send_command(cmd, 0x03, { irm });
 }
 
 TriggerButtonElapsedTime Joycon::trigger_button_elapsed_time() {
-	InputBuffer buff_in = this->send_command(0x01, 0x04, {}, true);
+	InputBuffer buff_in = this->send_command(0x01, 0x04, {});
 
 	TriggerButtonElapsedTime res;
 	ByteVector data = buff_in.get_reply_data(0, 14);
@@ -178,19 +196,19 @@ TriggerButtonElapsedTime Joycon::trigger_button_elapsed_time() {
 
 void Joycon::set_HCI_state(unsigned char state) {
 	check_input_arguments({ 0x00, 0x01, 0x02, 0x04 }, state, "Invalid input HCI-state");
-	this->send_command(0x01, 0x06, { state }, true);
+	this->send_command(0x01, 0x06, { state });
 }
 
 #ifdef ENABLE_UNTESTED
 // Initializes the 0x2000 SPI section.
 void Joycon::reset_pairing_info() {
-	this->send_command(0x01, 0x07, {}, true);
+	this->send_command(0x01, 0x07, {});
 }
 #endif
 
 #ifdef ENABLE_UNTESTED
 void Joycon::set_shipment(bool enable) {
-	this->send_command(0x01, 0x08, { static_cast<unsigned char>(enable) }, true);
+	this->send_command(0x01, 0x08, { static_cast<unsigned char>(enable) });
 }
 #endif
 
@@ -208,7 +226,7 @@ ByteVector Joycon::SPI_flash_read(unsigned int address, unsigned char length) {
 	to_byte_container(address, data_send, 0, 4, false);
 	data_send[4] = length;
 
-	InputBuffer buff_in = this->send_command(0x01, 0x10, data_send, true);
+	InputBuffer buff_in = this->send_command(0x01, 0x10, data_send);
 
 	if (buff_in.get_subcommandID_reply() != 0x90 || 
 		to_int(buff_in.get_reply_data(0, 4), false) != address ||
@@ -238,7 +256,7 @@ void Joycon::SPI_flash_write(unsigned int address, ByteVector data) {
 	// write data
 	std::copy(data.begin(), data.end(), data_send.begin() + 5);
 
-	InputBuffer buff_in = this->send_command(0x01, 0x11, data_send, true);
+	InputBuffer buff_in = this->send_command(0x01, 0x11, data_send);
 
 	if (buff_in.get_subcommandID_reply() != 0x91   ||
 		to_int(buff_in.get_reply_data(0, 4), false) != address ||
@@ -260,7 +278,7 @@ void Joycon::SPI_sector_erase(unsigned int address) {
 		throw std::invalid_argument("Address can only have 4 byte!");
 	}
 
-	InputBuffer buff_in = this->send_command(0x01, 0x12, address.swapped(), true);
+	InputBuffer buff_in = this->send_command(0x01, 0x12, address.swapped());
 
 	if (buff_in.get_subcommandID_reply() != 0x92 ||
 		to_int(buff_in.get_reply_data(0, 4), false) != address)
@@ -275,11 +293,11 @@ void Joycon::SPI_sector_erase(unsigned int address) {
 #endif
 
 void Joycon::set_player_lights(PLAYER_LIGHTS arg) {
-	this->send_command(0x01, 0x30, { static_cast<unsigned char>(arg) }, false);
+	this->send_command(0x01, 0x30, { static_cast<unsigned char>(arg) });
 }
 
 PLAYER_LIGHTS Joycon::get_player_lights() {
-	InputBuffer buff_in = this->send_command(0x01, 0x31, {}, true);
+	InputBuffer buff_in = this->send_command(0x01, 0x31, {});
 
 	if (buff_in.get_ACK() != 0xB0 || 
 		buff_in.get_subcommandID_reply() != 0x31) 
@@ -291,11 +309,11 @@ PLAYER_LIGHTS Joycon::get_player_lights() {
 }
 
 void Joycon::set_home_light(const HOME_LIGHT& light_data) {
-	InputBuffer buff_in = this->send_command(0x01, 0x38, light_data.data(), false);
+	InputBuffer buff_in = this->send_command(0x01, 0x38, light_data.data());
 }
 
 void Joycon::enable_IMU(bool enable) {
-	this->send_command(0x01, 0x40, { static_cast<unsigned char>(enable) }, true);
+	this->send_command(0x01, 0x40, { static_cast<unsigned char>(enable) });
 }
 
 // Sending x40 x01 (IMU enable), if it was previously disabled, resets your configuration to 0x03 0x00 0x01 0x01
@@ -305,13 +323,13 @@ void Joycon::set_IMU_sensitivity(unsigned char gyro_sens, unsigned char acc_sens
 	check_input_arguments({ 0x00, 0x01 }, gyro_perf_rate, "Invalid gyro_perf_rate input");
 	check_input_arguments({ 0x00, 0x01 }, acc_aa_filter, "Invalid acc_aa_filter input");
 
-	this->send_command(0x01, 0x41, { gyro_sens, acc_sens, gyro_perf_rate, acc_aa_filter }, true);
+	this->send_command(0x01, 0x41, { gyro_sens, acc_sens, gyro_perf_rate, acc_aa_filter });
 }
 
 #ifdef ENABLE_UNTESTED
 void Joycon::write_IMU_register(unsigned char address, unsigned char value) {
 	check_input_arguments({}, address, "Invalid address");	// <-- TODO
-	this->send_command(0x01, 0x42, { address, 0x01, value }, true);
+	this->send_command(0x01, 0x42, { address, 0x01, value });
 }
 #endif
 
@@ -320,7 +338,7 @@ unsigned char Joycon::read_IMU_register(unsigned char address) {
 
 	check_input_arguments({}, address, "Invalid address");	// <-- TODO
 
-	InputBuffer buff_in = this->send_command(0x01, 0x43, { address, 0x01 }, true);
+	InputBuffer buff_in = this->send_command(0x01, 0x43, { address, 0x01 });
 
 	if (buff_in.get_ACK() != 0xC0 || 
 		buff_in.get_subcommandID_reply() != 0x43 || 
@@ -340,7 +358,7 @@ ByteVector Joycon::read_IMU_registers(unsigned char start_address, unsigned char
 	check_input_arguments({}, start_address, "Invalid start_address");	// <-- TODO
 	if (amount > 0x20) { throw std::invalid_argument("Max amount is 0x20."); }
 
-	InputBuffer buff_in = this->send_command(0x01, 0x43, { start_address, amount }, true);
+	InputBuffer buff_in = this->send_command(0x01, 0x43, { start_address, amount });
 
 	if (buff_in.get_ACK() != 0xC0 ||
 		buff_in.get_subcommandID_reply() != 0x43 ||
@@ -355,11 +373,11 @@ ByteVector Joycon::read_IMU_registers(unsigned char start_address, unsigned char
 #endif
 
 void Joycon::enable_vibration(bool enable) {
-	this->send_command(0x01, 0x48, { static_cast<unsigned char>(enable) }, false);
+	this->send_command(0x01, 0x48, { static_cast<unsigned char>(enable) });
 }
 
 POWER Joycon::get_regulated_voltage() {
-	InputBuffer buff_in = this->send_command(0x01, 0x50, {}, true);
+	InputBuffer buff_in = this->send_command(0x01, 0x50, {});
 
 	if (buff_in.get_ACK() != 0xD0 ||
 		buff_in.get_subcommandID_reply() == 0x50)
@@ -375,7 +393,7 @@ POWER Joycon::get_regulated_voltage() {
 }
 
 void Joycon::send_rumble(Rumble rumble) {
-	this->send_command(0x10, 0x00, {}, false, rumble);
+	this->send_command(0x10, 0x00, {}, rumble);
 }
 
 SensorCalibration Joycon::get_sensor_calibration() {
@@ -469,19 +487,5 @@ int JoyconVec::addDevices() {
 
 	hid_free_enumeration(devs);
 
-	return 0;
-}
-
-int JoyconVec::startDevices() {
-
-	if (vec.size() == 0) {
-		std::cout << "No joy-con device detected!" << std::endl;
-		return -1;
-	} else {
-		std::cout << "Starting capture for " << vec.size() << " devices!" << std::endl;
-		for (const auto& jc_ptr : vec) {
-			jc_ptr->capture();
-		}
-	}
 	return 0;
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mutex>
+#include <queue>
 #include <string>
 #include <stdexcept>
 #include <thread>
@@ -33,8 +34,7 @@ public:
 	~Joycon();
 
 	void printDeviceInfo() const;
-	InputBuffer send_command(unsigned char cmd, unsigned char subcmd, const ByteVector& data, bool blocking = true, Rumble rumble = Rumble());
-	void capture();
+	InputBuffer send_command(unsigned char cmd, unsigned char subcmd, const ByteVector& data, Rumble rumble = Rumble());
 	void callback();
 
 	JoyconDeviceInfo request_device_info();
@@ -116,12 +116,15 @@ private:
 	std::size_t package_number = 0;
 
 	mutable std::mutex hid_mutex;
+	mutable std::mutex subcommand_reply_mutex;
+	mutable std::mutex cout_mutex;
+
+	std::queue<InputBuffer> command_reply;
 };
 
 class JoyconVec {
 public:
 	int addDevices();
-	int startDevices();
 
 	std::size_t size() { return vec.size(); }
 	Joycon& device(std::size_t idx) { return *vec.at(idx); }

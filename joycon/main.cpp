@@ -30,7 +30,6 @@ int main() {
 
 	JoyconVec joycons;
 	if (joycons.addDevices()   == -1) { hid_exit();  return 0; }
-	if (joycons.startDevices() == -1) { hid_exit();  return 0; };
 
 	while (!shutdown_flag) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
