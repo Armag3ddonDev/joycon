@@ -25,7 +25,7 @@ Joycon::Joycon(JOY_PID PID, wchar_t* serial_number) : package_number(0) {
 
 	try {
 
-		CHECK(hid_set_nonblocking(handle, 1));
+		CHECK(hid_set_nonblocking(handle, 0));
 
 		callback_thread = std::thread(&Joycon::callback, this);
 
@@ -38,10 +38,14 @@ Joycon::Joycon(JOY_PID PID, wchar_t* serial_number) : package_number(0) {
 		this->enable_IMU(true);
 
 		std::cout << "Activating full report mode..." << std::endl;
-		this->set_input_report_mode(0x30);
+		this->set_input_report_mode(0x3F);
 
 		std::cout << "Reading SPI calibration..." << std::endl;
 		// this->sensorCalib = this->get_sensor_calibration();
+
+		std::cout << "Reading device info..." << std::endl;
+		JoyconDeviceInfo info = this->request_device_info();
+		std::cout << "MAC: " << info.mac << std::endl;
 
 	} catch (std::exception& e) {
 		hid_close(handle);
@@ -98,10 +102,7 @@ InputBuffer Joycon::send_command(unsigned char cmd, unsigned char subcmd, const 
 		std::cout << "	sending : " << buff_out << std::endl;
 	}
 
-	{
-		std::lock_guard<std::mutex> lock(hid_mutex);
-		CHECK(hid_write(handle, buff_out.data(), buff_out.size()));
-	}
+	CHECK(hid_write(handle, buff_out.data(), buff_out.size()));
 
 	InputBuffer buff_in;
 	while (true) {
@@ -130,15 +131,7 @@ void Joycon::callback() {
 		buff_in.clean();
 
 		// Read requested state
-		{
-			std::lock_guard<std::mutex> lock(hid_mutex);
-			CHECK(hid_read(handle, buff_in.data(), buff_in.size()));
-		}
-
-		if (buff_in.get_ID() == 0x00) {
-			// std::this_thread::sleep_for(std::chrono::milliseconds(50));
-			continue;
-		}
+		CHECK(hid_read(handle, buff_in.data(), buff_in.size()));
 
 		if (buff_in.get_ID() == 0x21) {
 			std::lock_guard<std::mutex> lock(subcommand_reply_mutex);
