@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <chrono>
+#include <deque>
 #include <iostream>
 #include <sstream>
 #include <unordered_set>
@@ -64,8 +65,6 @@ Joycon::~Joycon() {
 
 void Joycon::printDeviceInfo() const {
 
-	std::lock_guard<std::mutex> lock(hid_mutex);
-
 	std::cout << "Device Info:" << std::endl;
 	
 	wchar_t wstr[MAX_STR];
@@ -95,32 +94,41 @@ InputBuffer Joycon::send_command(unsigned char cmd, unsigned char subcmd, const 
 	buff_out.set_data(data);
 	buff_out.set_rumble_left(rumble);
 	buff_out.set_rumble_right(rumble);
-	buff_out.set_GP(package_number & 0x0F);
-
-	{
-		std::lock_guard<std::mutex> lock(cout_mutex);
-		std::cout << "	sending : " << buff_out << std::endl;
-	}
-
-	CHECK(hid_write(handle, buff_out.data(), buff_out.size()));
 
 	InputBuffer buff_in;
-	while (true) {
-		std::lock_guard<std::mutex> lock(subcommand_reply_mutex);
-		if ((command_reply.size() > 0) && (command_reply.front().get_subcommandID_reply() == subcmd)) {
-			buff_in = command_reply.front();
-			command_reply.pop();
-			break;
+
+	for (std::size_t tryNR = 1; tryNR < 10; ++tryNR) {
+
+		{
+			std::lock_guard<std::mutex> lock(cout_mutex);
+			std::cout << "	sending(" << tryNR << "): " << buff_out << std::endl;
+		}
+
+		buff_out.set_GP((package_number++) & 0x0F);
+		CHECK(hid_write(handle, buff_out.data(), buff_out.size()));
+
+		// waiting for reply
+		using namespace std::chrono;
+		time_point<system_clock> end = system_clock::now() + milliseconds(100);
+		for (; system_clock::now() < end; std::this_thread::sleep_for(milliseconds(10))) {
+			std::lock_guard<std::mutex> lock(subcommand_reply_mutex);
+			for (InputBuffer& buff_reply : command_reply) {
+				if (buff_reply.get_subcommandID_reply() == subcmd) {
+					buff_in = buff_reply;
+					command_reply.clear();
+					std::cout << "	received  : " << buff_in << std::endl;
+					std::lock_guard<std::mutex> lock(cout_mutex);
+					return buff_in;
+				}
+			}
+			command_reply.clear();
 		}
 	}
 
 	{
 		std::lock_guard<std::mutex> lock(cout_mutex);
-		std::cout << "	received: " << buff_in << std::endl;
+		std::cout << "TIMEOUT" << std::endl;
 	}
-
-	++package_number;
-
 	return buff_in;
 }
 
@@ -135,7 +143,7 @@ void Joycon::callback() {
 
 		if (buff_in.get_ID() == 0x21) {
 			std::lock_guard<std::mutex> lock(subcommand_reply_mutex);
-			command_reply.push(buff_in);
+			command_reply.push_front(buff_in);
 			continue;
 		}
 
@@ -147,6 +155,7 @@ void Joycon::callback() {
 }
 
 JoyconDeviceInfo Joycon::request_device_info() {
+
 	InputBuffer buff_in = this->send_command(0x01, 0x02, {});
 
 	JoyconDeviceInfo info;

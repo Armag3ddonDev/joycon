@@ -1,7 +1,7 @@
 #pragma once
 
+#include <deque>
 #include <mutex>
-#include <queue>
 #include <string>
 #include <stdexcept>
 #include <thread>
@@ -115,11 +115,10 @@ private:
 	bool alive = true;
 	std::size_t package_number = 0;
 
-	mutable std::mutex hid_mutex;
 	mutable std::mutex subcommand_reply_mutex;
 	mutable std::mutex cout_mutex;
 
-	std::queue<InputBuffer> command_reply;
+	std::deque<InputBuffer> command_reply;
 };
 
 class JoyconVec {
