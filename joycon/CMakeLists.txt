@@ -9,22 +9,35 @@ set(SOURCES
     main.cpp
     buffer.cpp
     joycon.cpp
-	rumble.cpp
-	homelight.cpp)
+    rumble.cpp
+    homelight.cpp)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
-target_link_libraries(${PROJECT_NAME} hidapi-hidraw pthread)
+set(LIBRARIES
+    pthread)
+
+if (WIN32)
+    set(LIBRARIES
+        ${LIBRARIES}
+        hidapi)
+else()
+    set(LIBRARIES
+        ${LIBRARIES}
+        hidapi-hidraw)
+endif()
+
+target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
 
 # enable tests per default
 option(BUILD_TESTS "Build automatic tests" ON)
 
 if (BUILD_TESTS)
-	#tests/googletest contains CMakeLists.txt to download and compile googletests
-	add_subdirectory(tests/googletest)
-	enable_testing() #tell cmake we are using a testing framework
+    #tests/googletest contains CMakeLists.txt to download and compile googletests
+    add_subdirectory(tests/googletest)
+    enable_testing() #tell cmake we are using a testing framework
 
-	#tests/ includes every testcase that should be build
-	add_subdirectory(tests)
+    #tests/ includes every testcase that should be build
+    add_subdirectory(tests)
 endif()
 
