@@ -93,8 +93,8 @@ void InputBuffer::check_ID(byte valid) const {
 	const byte& ID = this->get_ID();
 	if (ID != valid) {
 		std::ostringstream error;
-		error << "Wrong mode! ID should be " << std::hex << static_cast<unsigned int>(valid) 
-			<< ", but ID is " << std::hex << static_cast<unsigned int>(ID) << std::endl;
+		error << "Wrong mode! ID should be " << std::hex << static_cast<unsigned int>(valid)
+			  << ", but ID is " << std::hex << static_cast<unsigned int>(ID) << std::endl;
 		throw std::runtime_error(error.str());
 	}
 }

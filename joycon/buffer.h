@@ -115,13 +115,13 @@ public:
 	inline const byte* data() const { return buf.data(); }
 
 	/// set command byte
-	void set_cmd(byte in);	
+	void set_cmd(byte in);
 
 	/// set global packet number (increments by 1 for each package sent;  It loops in 0x0 - 0xF range)
-	void set_GP(byte in);	
+	void set_GP(byte in);
 
 	/// set subcommand byte
-	void set_subcmd(byte in);	
+	void set_subcmd(byte in);
 
 	/// set left rumble data
 	void set_rumble_left(const Rumble& rumble);

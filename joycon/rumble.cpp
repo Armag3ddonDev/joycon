@@ -89,7 +89,7 @@ double Rumble::decode_frequency(byte hf, byte lf) const {
 			encoded_hex_freq = lf + 0x40;
 		}
 	} else if (hf == 0) {
-			throw std::invalid_argument("lf and hf can not be both 0x00.");
+		throw std::invalid_argument("lf and hf can not be both 0x00.");
 	} else {
 		encoded_hex_freq = hf + 0x60;
 	}

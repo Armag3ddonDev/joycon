@@ -101,7 +101,7 @@ InputBuffer Joycon::send_command(unsigned char cmd, unsigned char subcmd, const 
 
 		std::cout << "	received: " << buff_in << std::endl;
 
-		CHECK(hid_set_nonblocking(handle, 1)); 
+		CHECK(hid_set_nonblocking(handle, 1));
 	}
 
 	++package_number;
@@ -210,9 +210,9 @@ ByteVector Joycon::SPI_flash_read(unsigned int address, unsigned char length) {
 
 	InputBuffer buff_in = this->send_command(0x01, 0x10, data_send, true);
 
-	if (buff_in.get_subcommandID_reply() != 0x90 || 
-		to_int(buff_in.get_reply_data(0, 4), false) != address ||
-		buff_in.get_reply_data_at(4) != length) 
+	if (buff_in.get_subcommandID_reply() != 0x90 ||
+			to_int(buff_in.get_reply_data(0, 4), false) != address ||
+			buff_in.get_reply_data_at(4) != length)
 	{
 		throw std::runtime_error("Did not receive correct answer!");
 	}
@@ -241,8 +241,8 @@ void Joycon::SPI_flash_write(unsigned int address, ByteVector data) {
 	InputBuffer buff_in = this->send_command(0x01, 0x11, data_send, true);
 
 	if (buff_in.get_subcommandID_reply() != 0x91   ||
-		to_int(buff_in.get_reply_data(0, 4), false) != address ||
-		buff_in.get_reply_data_at(4) != length)
+			to_int(buff_in.get_reply_data(0, 4), false) != address ||
+			buff_in.get_reply_data_at(4) != length)
 	{
 		throw std::runtime_error("Did not receive correct answer!");
 	}
@@ -263,7 +263,7 @@ void Joycon::SPI_sector_erase(unsigned int address) {
 	InputBuffer buff_in = this->send_command(0x01, 0x12, address.swapped(), true);
 
 	if (buff_in.get_subcommandID_reply() != 0x92 ||
-		to_int(buff_in.get_reply_data(0, 4), false) != address)
+			to_int(buff_in.get_reply_data(0, 4), false) != address)
 	{
 		throw std::runtime_error("Did not receive correct answer!");
 	}
@@ -281,8 +281,8 @@ void Joycon::set_player_lights(PLAYER_LIGHTS arg) {
 PLAYER_LIGHTS Joycon::get_player_lights() {
 	InputBuffer buff_in = this->send_command(0x01, 0x31, {}, true);
 
-	if (buff_in.get_ACK() != 0xB0 || 
-		buff_in.get_subcommandID_reply() != 0x31) 
+	if (buff_in.get_ACK() != 0xB0 ||
+			buff_in.get_subcommandID_reply() != 0x31)
 	{
 		throw std::runtime_error("Did not receive correct answer!");
 	}
@@ -322,10 +322,10 @@ unsigned char Joycon::read_IMU_register(unsigned char address) {
 
 	InputBuffer buff_in = this->send_command(0x01, 0x43, { address, 0x01 }, true);
 
-	if (buff_in.get_ACK() != 0xC0 || 
-		buff_in.get_subcommandID_reply() != 0x43 || 
-		buff_in.get_replay_data_at(0) != address ||
-		buff_in.get_reply_data_at(1) != 0x01)
+	if (buff_in.get_ACK() != 0xC0 ||
+			buff_in.get_subcommandID_reply() != 0x43 ||
+			buff_in.get_replay_data_at(0) != address ||
+			buff_in.get_reply_data_at(1) != 0x01)
 	{
 		throw std::runtime_error("Did not receive correct answer!");
 	}
@@ -343,9 +343,9 @@ ByteVector Joycon::read_IMU_registers(unsigned char start_address, unsigned char
 	InputBuffer buff_in = this->send_command(0x01, 0x43, { start_address, amount }, true);
 
 	if (buff_in.get_ACK() != 0xC0 ||
-		buff_in.get_subcommandID_reply() != 0x43 ||
-		buff_in.get_replay_data_at(0) != address ||
-		buff_in.get_reply_data_at(1) != amount)
+			buff_in.get_subcommandID_reply() != 0x43 ||
+			buff_in.get_replay_data_at(0) != address ||
+			buff_in.get_reply_data_at(1) != amount)
 	{
 		throw std::runtime_error("Did not receive correct answer!");
 	}
@@ -362,7 +362,7 @@ POWER Joycon::get_regulated_voltage() {
 	InputBuffer buff_in = this->send_command(0x01, 0x50, {}, true);
 
 	if (buff_in.get_ACK() != 0xD0 ||
-		buff_in.get_subcommandID_reply() == 0x50)
+			buff_in.get_subcommandID_reply() == 0x50)
 	{
 		throw std::runtime_error("Did not receive correct answer!");
 	}
