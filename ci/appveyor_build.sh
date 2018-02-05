@@ -1,7 +1,8 @@
 #!/bin/bash
 
 pacman -Syuu --noconfirm
-pacman -S --needed --noconfirm $MINGW_PACKAGE_PREFIX-{cmake, ninja, qtcreator, toolchain, hidapi}
+pacman -S --needed --noconfirm $MINGW_PACKAGE_PREFIX-{cmake,ninja,qtcreator,toolchain hidapi}
+
 
 PROJECTPATH=$(cygpath ${APPVEYOR_BUILD_FOLDER})
 
