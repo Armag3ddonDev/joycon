@@ -8,7 +8,7 @@ PROJECTPATH=$(cygpath ${APPVEYOR_BUILD_FOLDER})
 
 mkdir build
 cd build
-cmake -G Ninja $PROJECT_PATH
+cmake -G Ninja $PROJECTPATH
 
 ninja -j2 #build
 
