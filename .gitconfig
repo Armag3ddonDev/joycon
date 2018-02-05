@@ -1,0 +1,6 @@
+[filter "tabify"]
+	clean = unexpand --tabs=4 --first-only
+
+*.cpp filter=tabify
+*.h filter=tabify
+CMake*.txt filter=tabify
