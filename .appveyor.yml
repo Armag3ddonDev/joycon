@@ -1,13 +1,11 @@
 
 image: Visual Studio 2017
 
-platform:
-  - x86
-  
-configuration:
-  - debug
+environment:
+  matrix:
+  - MSYSTEM: MINGW64
 
-build:
-  parallel: true                  # enable MSBuild parallel builds
-  project: joycon.sln
+build_script:
+  - C:\msys64\usr\bin\pacman -Syuu --noconfirm
+  - C:\msys64\usr\bin\bash -lc "$(cygpath ${APPVEYOR_BUILD_FOLDER})/ci/appveyor_build.sh"
 
